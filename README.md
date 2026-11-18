@@ -28,7 +28,7 @@
    - `syncStudents` — ซิงก์รายชื่อนักเรียนจากฐานข้อมูลนักเรียนกลาง (ชีต ทะเบียนนักเรียน)
    - `seedRoles` — ตั้งต้นบทบาท (ผู้บริหาร, ครูที่ปรึกษา/หัวหน้าระดับจากชีต ครูที่ปรึกษา, ผู้ดูแลระบบ T003 และ T304)
    - วางข้อมูล DMC ในชีต `DMC` ของไฟล์ database แล้วรัน `importDMC` (เพิ่มเบอร์ผู้ปกครองและรหัสเข้าระบบนักเรียน)
-   - `pullAttendance` แล้ว `installTriggers` (ดึงข้อมูลเช็กชื่ออัตโนมัติ 12:30 และ 17:30)
+   - `pullAttendance` แล้ว `installTriggers` (ดึงข้อมูลเช็กชื่ออัตโนมัติ 08:30 และ 10:00)
    - `testSystem` — ตรวจผลใน Execution log
 4. Deploy › New deployment › Web app · Execute as: **Me** · Who has access: **Anyone**
 5. นำ URL ที่ลงท้าย `/exec` ไปใส่ `CONFIG.API_URL` ใน `app/index.html`

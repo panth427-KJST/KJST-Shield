@@ -136,7 +136,7 @@ function attendanceSourceSave_(by, p) {
 
 function installTriggers() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'pullAttendanceAuto') ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger('pullAttendanceAuto').timeBased().everyDays(1).atHour(12).nearMinute(30).create();
-  ScriptApp.newTrigger('pullAttendanceAuto').timeBased().everyDays(1).atHour(17).nearMinute(30).create();
-  Logger.log('ตั้งเวลาดึงข้อมูลเช็กชื่อวันละ 2 รอบ (12:30, 17:30) แล้ว');
+  ScriptApp.newTrigger('pullAttendanceAuto').timeBased().everyDays(1).atHour(8).nearMinute(30).create();
+  ScriptApp.newTrigger('pullAttendanceAuto').timeBased().everyDays(1).atHour(10).nearMinute(0).create();
+  Logger.log('ตั้งเวลาดึงข้อมูลเช็กชื่อวันละ 2 รอบ (08:30, 10:00) แล้ว');
 }
