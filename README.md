@@ -17,7 +17,7 @@
 - **Users กลาง** `1dfdj6Mnd_Z7QA6Cf7gS1uK5rBSFO__MWMX4ikwjDhXU` (อ่านอย่างเดียว)
 - **E-Attendance 2-2569** `1KFVE1AenbfaRiAWxRefoU9xIR8b0fKgMZ4RReMnruhw` (อ่านอย่างเดียว)
 
-## ติดตั้ง (บัญชี kjst.eoffice@kjst.ac.th)
+## ติดตั้ง (บัญชี panth427@kjst.ac.th)
 
 1. สร้างโปรเจกต์ Apps Script แบบ standalone แล้วคัดลอกทุกไฟล์ใน `gas/` (หรือ `clasp clone`/`clasp push` โดยตั้ง `"rootDir": "gas"` ใน `.clasp.json`)
 2. ให้บัญชีเจ้าของสคริปต์มีสิทธิ์แก้ไข System file และ database และมีสิทธิ์อ่าน Users กลางและ E-Attendance

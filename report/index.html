@@ -176,7 +176,7 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:20px}
 <!-- 3 -->
 <section id="s3">
   <h2><span class="n">3</span>สถาปัตยกรรมระบบใหม่</h2>
-  <p class="lead">หน้าเว็บอยู่บน GitHub Pages เรียก API ของ Google Apps Script ที่เป็นเจ้าของโดย kjst.eoffice@kjst.ac.th</p>
+  <p class="lead">หน้าเว็บอยู่บน GitHub Pages เรียก API ของ Google Apps Script ที่เป็นเจ้าของโดย panth427@kjst.ac.th</p>
   <div class="tier">
     <div class="row">
       <div class="node navy"><b>หน้าเว็บ (GitHub Pages)</b><span>app/index.html · HTML + JavaScript</span></div>
@@ -197,7 +197,7 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:20px}
   <h3>หลักการทำงาน</h3>
   <ul class="c">
     <li>หน้าเว็บไม่เข้าถึง Google Sheet โดยตรง ทุกคำขอผ่าน GAS ซึ่งตรวจ session และสิทธิ์ก่อนเสมอ</li>
-    <li>GAS deploy แบบ <i>Execute as: Me (kjst.eoffice)</i> และ <i>Who has access: Anyone</i> ความปลอดภัยอยู่ที่การตรวจ token</li>
+    <li>GAS deploy แบบ <i>Execute as: Me (panth427)</i> และ <i>Who has access: Anyone</i> ความปลอดภัยอยู่ที่การตรวจ token</li>
     <li>ผลสรุปของนักเรียนทั้งโรงเรียน (คะแนน ระดับความเสี่ยง เวลาเรียน) เก็บใน CacheService เป็นชิ้น ๆ พร้อมเลขเวอร์ชัน การบันทึกคะแนนหรือดึงข้อมูลเช็คชื่อจะเพิ่มเลขเวอร์ชันให้คำนวณใหม่ครั้งเดียว</li>
   </ul>
 </section>
@@ -483,7 +483,7 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:20px}
 <section id="s12">
   <h2><span class="n">12</span>ขั้นตอนติดตั้ง</h2>
   <ol class="c">
-    <li>ใช้บัญชี kjst.eoffice@kjst.ac.th สร้างโปรเจกต์ Apps Script แบบ standalone (ไฟล์ System file และ database สร้างไว้แล้ว ระบบเปิดด้วยรหัสไฟล์ที่ตั้งไว้ใน <code>Config.gs</code>)</li>
+    <li>ใช้บัญชี panth427@kjst.ac.th สร้างโปรเจกต์ Apps Script แบบ standalone (ไฟล์ System file และ database สร้างไว้แล้ว ระบบเปิดด้วยรหัสไฟล์ที่ตั้งไว้ใน <code>Config.gs</code>)</li>
     <li>คัดลอกไฟล์ทั้งหมดในโฟลเดอร์ <code>gas/</code> ของ repo นี้ (หรือใช้ <code>clasp push</code> โดยตั้ง <code>rootDir</code> เป็น <code>gas</code>)</li>
     <li>รันฟังก์ชัน <code>setup</code> หนึ่งครั้งและอนุญาตสิทธิ์ ระบบจะสร้างทุกชีตในทั้ง 2 ไฟล์ ตั้งเกณฑ์ตั้งต้น และสร้าง pepper ใน Script Properties</li>
     <li>ใส่ Client ID ของ Google ใน Config (<code>GOOGLE_CLIENT_ID</code>) — ใช้ Client ID เดียวกับ E-Attendance ได้ถ้าหน้าเว็บอยู่โดเมน panth427-kjst.github.io เดียวกัน</li>
