@@ -55,7 +55,7 @@ function setup() {
 function syncUsers() { Logger.log(JSON.stringify(syncUsers_('editor'), null, 1)); }
 function seedRoles() { Logger.log(JSON.stringify(seedRoles_('editor', false), null, 1)); }
 function syncStudents() { Logger.log(JSON.stringify(syncStudents_('editor'), null, 1)); }
-function importDMC() { Logger.log(JSON.stringify(importDMC_('editor'))); }
+function importDMC() { Logger.log(JSON.stringify(importDMC_('editor', true))); }
 function importOpening() { Logger.log(JSON.stringify(importOpening_('editor'))); }
 function pullAttendance() { Logger.log(JSON.stringify(pullAttendance_('editor'), null, 1)); }
 function clearSummaryCache() { bumpSummary_(); Logger.log('ล้าง cache ผลสรุปแล้ว (SUM_VER=' + sumVer_() + ')'); }

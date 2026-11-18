@@ -94,7 +94,9 @@ var ACTIONS = {
   permissions:   { perm: 'users.manage', fn: function () { return rows_('Permissions').map(function (r) { delete r._row; return r; }); } },
 
   studentsSync:  { perm: 'data.import', fn: function (u) { return syncStudents_(by_(u)); } },
-  importDMC:     { perm: 'data.import', fn: function (u) { return importDMC_(by_(u)); } },
+  importDMC:     { perm: 'data.import', fn: function (u, p) { return importDMC_(by_(u), p.removeSheet !== false); } },
+  studentsNoAuth:{ perm: 'data.import', fn: function () { return studentsNoAuth_(); } },
+  setStudentAuth:{ perm: 'data.import', fn: function (u, p) { return setStudentAuth_(by_(u), p); } },
   importOpening: { perm: 'data.import', fn: function (u) { return importOpening_(by_(u)); } },
   attendancePull:{ perm: 'data.import', fn: function (u) { return pullAttendance_(by_(u)); } },
   attendanceSources:    { perm: 'data.import', fn: function () { return rows_('AttendanceSources').map(function (r) { delete r._row; return r; }); } },

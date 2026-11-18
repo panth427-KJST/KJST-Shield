@@ -37,8 +37,9 @@ function syncStudents_(by) {
   return res;
 }
 
-/** ข้อมูลเสริมจาก DMC: เบอร์ผู้ปกครอง + รหัสเข้าระบบนักเรียน (จับคู่ด้วยเลขประจำตัวนักเรียน) */
-function importDMC_(by) {
+/** ข้อมูลเสริมจาก DMC (นำเข้าครั้งเดียว): เบอร์ผู้ปกครอง + รหัสเข้าระบบนักเรียน (จับคู่ด้วยเลขประจำตัวนักเรียน)
+ *  removeSheet = true → ลบชีต DMC ทิ้งหลังนำเข้าสำเร็จ (ไม่ให้เลขบัตรเต็มค้างในไฟล์) */
+function importDMC_(by, removeSheet) {
   var s = book_('DATA').getSheetByName('DMC');
   if (!s || s.getLastRow() < 2) throw err_('INPUT', 'ไม่พบข้อมูลในชีต "DMC" ของไฟล์ database — วางข้อมูลจากไฟล์ DMC ก่อน');
   var v = s.getDataRange().getValues(), h = v[0].map(function (x) { return String(x).trim(); });
@@ -65,9 +66,33 @@ function importDMC_(by) {
   }
   lock_(function () { updateRows_('Students', upd); });
   var noLogin = rows_('Students').filter(function (r) { return isActiveStudent_(r) && !r.auth_hash; }).length;
-  var res = { updated: upd.length, notInRegistry: noMatch, noAuth: noAuth, activeWithoutLogin: noLogin };
+  var res = { updated: upd.length, notInRegistry: noMatch, noAuth: noAuth, activeWithoutLogin: noLogin, sheetRemoved: false };
+  if (removeSheet && upd.length) { book_('DATA').deleteSheet(s); res.sheetRemoved = true; }
   audit_(by, 'importDMC', res);
   return res;
+}
+
+/** ตั้งรหัสเข้าระบบรายคน (นักเรียนย้ายเข้าใหม่หลังนำเข้า DMC) — ไม่เก็บเลขบัตรเต็ม */
+function setStudentAuth_(by, p) {
+  var id = sid_(p.student_id), nid = nid_(p.nid), dob = normDob_(p.dob);
+  if (nid.length !== 13) throw err_('INPUT', 'กรุณากรอกเลขประจำตัวประชาชน 13 หลัก');
+  if (!dob) throw err_('INPUT', 'กรุณากรอกวันเกิดเป็น วว/ดด/ปปปป (พ.ศ.)');
+  return lock_(function () {
+    dirty_('Students');
+    var s = rows_('Students').filter(function (r) { return r.student_id === id; })[0];
+    if (!s) throw err_('NOTFOUND', 'ไม่พบนักเรียนรหัส ' + id);
+    var o = { auth_hash: studentAuthHash_(nid, dob), nid_last4: nid.slice(-4), dmc_at: now_() + ' (กรอกรายคน)' };
+    if (p.parent_phone) o.parent_phone = String(p.parent_phone).replace(/[^\d-]/g, '');
+    updateRows_('Students', [Object.assign({}, s, o)]);
+    audit_(by, 'setStudentAuth', { student_id: id });
+    return { student_id: id, name: fullName_(s) };
+  });
+}
+
+/** นักเรียนปัจจุบันที่ยังไม่มีรหัสเข้าระบบ */
+function studentsNoAuth_() {
+  return activeStudents_().filter(function (s) { return !s.auth_hash; })
+    .map(function (s) { return { id: s.student_id, name: fullName_(s), cls: cls_(s.grade, s.room) }; });
 }
 
 /** ยอดยกมา: ชีต "ยอดยกมา" ในไฟล์ database คอลัมน์ A = รหัสนักเรียน, B = คะแนนคงเหลือ ณ วันเปิดระบบ */
