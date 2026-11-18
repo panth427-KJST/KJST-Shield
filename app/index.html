@@ -580,7 +580,7 @@ async function aUsers(){
   $('uSync').onclick=async()=>{ const r=await run(api('usersSync')); if(!r) return; modal(`<h2 style="font-size:20px">ผลการซิงก์</h2><p>เพิ่มใหม่ ${r.added} · อัปเดต ${r.updated} · ไม่อยู่ในบุคลากรกลางแล้ว ${r.deactivated}</p>
       ${r.conflicts.length?`<div class="note">ข้อมูลประเภทบุคลากรไม่ตรงกันระหว่าง Staff_Master กับ Users_HR ${r.conflicts.length} คน (ระบบใช้ Staff_Master):<br>${r.conflicts.map(c=>esc(c.staff_id+' '+c.name+' — master: '+c.master_type+' / HR: '+c.hr_type+' '+(c.hr_role||''))).join('<br>')}</div>`:''}
       <div style="text-align:right;margin-top:12px"><button type="button" class="btn pri" data-close>ตกลง</button></div>`, true); aUsers(); };
-  $('uSeed').onclick=async()=>{ const r=await run(api('usersSeedRoles',{})); if(!r) return; modal(`<h2 style="font-size:20px">ตั้งต้นบทบาท</h2><p>กำหนดบทบาทให้ ${r.updated} คน (เฉพาะคนที่ยังไม่มีบทบาท)</p>${r.unmatched.length?`<div class="note">อีเมลจาก E-Attendance ที่ไม่พบในรายชื่อ: ${r.unmatched.map(esc).join(', ')}</div>`:''}<div style="text-align:right;margin-top:12px"><button type="button" class="btn pri" data-close>ตกลง</button></div>`, true); aUsers(); };
+  $('uSeed').onclick=async()=>{ const r=await run(api('usersSeedRoles',{})); if(!r) return; modal(`<h2 style="font-size:20px">ตั้งต้นบทบาท</h2><p>กำหนดบทบาทให้ ${r.updated} คน (เฉพาะคนที่ยังไม่มีบทบาท) · ข้อมูลจาก ${esc(r.source||'-')}</p>${r.unmatched.length?`<div class="note">รหัส/อีเมลที่ไม่พบในรายชื่อผู้ใช้: ${r.unmatched.map(esc).join(', ')}</div>`:''}<div style="text-align:right;margin-top:12px"><button type="button" class="btn pri" data-close>ตกลง</button></div>`, true); aUsers(); };
 }
 const ROLE_TH = { executive:'ผู้บริหาร', head:'หัวหน้าระดับ', advisor:'ครูที่ปรึกษา', score_admin:'แอดมินบันทึกคะแนน', sysadmin:'ผู้ดูแลระบบ' };
 function editUser(id){
@@ -598,7 +598,8 @@ function editUser(id){
 async function aData(){
   const src = await run(api('attendanceSources')); if(!src) return;
   $('adm').innerHTML = `<div class="grid">
-    <div class="card"><h2>นักเรียนจาก DMC</h2><p class="small muted">วางข้อมูลจากไฟล์ DMC ในชีต <b>DMC</b> ของไฟล์ database แล้วกดนำเข้า ประวัติคะแนนไม่หาย</p><button type="button" class="btn gold" id="dDmc">นำเข้านักเรียนจาก DMC</button></div>
+    <div class="card"><h2>รายชื่อนักเรียน</h2><p class="small muted">ซิงก์จากฐานข้อมูลนักเรียนกลาง (ชีต ทะเบียนนักเรียน) ทุกครั้งที่มีย้ายเข้า ย้ายออก หรือเปลี่ยนห้อง · ประวัติคะแนนไม่หาย</p><button type="button" class="btn gold" id="dSync">ซิงก์รายชื่อนักเรียน</button></div>
+    <div class="card"><h2>ข้อมูลเสริมจาก DMC</h2><p class="small muted">วางไฟล์ DMC ในชีต <b>DMC</b> ของไฟล์ database เพื่อเพิ่มเบอร์ผู้ปกครองและรหัสเข้าระบบของนักเรียน/ผู้ปกครอง (ระบบไม่เก็บเลขบัตรเต็ม ลบชีต DMC ได้หลังนำเข้า)</p><button type="button" class="btn" id="dDmc">นำเข้าข้อมูลเสริมจาก DMC</button></div>
     <div class="card"><h2>ยอดคะแนนยกมา</h2><p class="small muted">ชีต <b>ยอดยกมา</b> ในไฟล์ database: คอลัมน์ A รหัสนักเรียน, B คะแนนคงเหลือ · นำเข้าคนละครั้งต่อช่วงชั้น</p><button type="button" class="btn" id="dOpen">นำเข้ายอดยกมา</button></div>
     <div class="card"><h2>ข้อมูลเช็กชื่อ E-Attendance</h2><p class="small muted">ดึงอัตโนมัติวันละ 2 รอบ (12:30 และ 17:30) หรือกดดึงทันที</p><button type="button" class="btn pri" id="dPull">ดึงข้อมูลเช็กชื่อตอนนี้</button></div></div>
     <div class="card"><h2>ไฟล์ E-Attendance แต่ละภาคเรียน</h2><div class="tw"><table><tr><th>ปี/ภาค</th><th>ไฟล์</th><th>ใช้งาน</th><th>ดึงล่าสุด</th></tr>
@@ -607,7 +608,8 @@ async function aData(){
       <div class="row"><label class="f">ปีการศึกษา<input id="aY" value="${esc(S.init.year)}" maxlength="4"></label><label class="f">ภาคเรียน<select id="aT"><option>1</option><option>2</option></select></label>
         <label class="f" style="flex:3 1 280px">ลิงก์หรือรหัสไฟล์ Google Sheet<input id="aF"></label><button type="button" class="btn pri" id="aSave">บันทึก</button></div></div>`;
   $('aT').value = S.init.term;
-  $('dDmc').onclick=async()=>{ if(!confirm('นำเข้ารายชื่อนักเรียนจากชีต DMC แทนรายชื่อปัจจุบัน?')) return; const r=await run(api('importDMC')); if(r){ S.stu=null; toast('นำเข้า '+r.count+' คน'+(r.noAuth?' · ไม่มีเลขบัตร/วันเกิด '+r.noAuth+' คน':'')); } };
+  $('dSync').onclick=async()=>{ const r=await run(api('studentsSync')); if(r){ S.stu=null; S.init=await api('init'); toast('รายชื่อ '+r.total+' คน · เพิ่มใหม่ '+r.added+' · '+Object.entries(r.status).map(([k,v])=>k+' '+v).join(' · ')); } };
+  $('dDmc').onclick=async()=>{ if(!confirm('นำเข้าเบอร์ผู้ปกครองและรหัสเข้าระบบนักเรียนจากชีต DMC?')) return; const r=await run(api('importDMC')); if(r){ S.stu=null; modal(`<h2 style="font-size:20px">นำเข้าข้อมูลเสริมแล้ว</h2><p>อัปเดต ${r.updated} คน · ไม่พบในทะเบียน ${r.notInRegistry} คน · ไม่มีเลขบัตร/วันเกิด ${r.noAuth} คน</p><p class="small">นักเรียนปัจจุบันที่ยังเข้าระบบไม่ได้: <b>${r.activeWithoutLogin}</b> คน</p><div style="text-align:right"><button type="button" class="btn pri" data-close>ตกลง</button></div>`, true); } };
   $('dOpen').onclick=async()=>{ if(!confirm('นำเข้ายอดคะแนนยกมาจากชีต "ยอดยกมา"?')) return; const r=await run(api('importOpening')); if(r){ S.stu=null; toast('เพิ่มยอดยกมา '+r.added+' คน'); } };
   $('dPull').onclick=async()=>{ const r=await run(api('attendancePull')); if(r){ S.stu=null; toast(r.map(x=>x.year+'/'+x.term+': '+(x.error?'ผิดพลาด':x.students+' คน '+x.days+' วัน')).join(' · ')); aData(); } };
   $('aSave').onclick=async()=>{ if(await run(api('attendanceSourceSave',{ year:$('aY').value, term:$('aT').value, file_id:$('aF').value }))){ toast('บันทึกแล้ว'); aData(); } };

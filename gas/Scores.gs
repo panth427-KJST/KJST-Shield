@@ -40,7 +40,7 @@ function addScore_(u, p) {
   var logs = [], missing = [];
   ids.forEach(function (id, i) {
     var s = stu[id];
-    if (!s || INACTIVE_STATUS.indexOf(s.status) >= 0 || !inScope_(sc, s.grade, s.room)) { missing.push(id); return; }
+    if (!s || !isActiveStudent_(s) || !inScope_(sc, s.grade, s.room)) { missing.push(id); return; }
     logs.push({
       log_id: 'L' + tag + '_' + i, date: date, year: y, term: t, student_id: id, grade: s.grade, room: s.room, stage: stage_(s.grade),
       item_id: item.item_id, type: item.type, category: item.category, item_name: item.item_name, points: pts,

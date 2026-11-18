@@ -15,17 +15,19 @@
 - **KJST Shield System file** `1CyT1E5gRTXJdQj0TPpBnoESuea74cQQmuULRNtK2uzE` — Config, Users_Shield, Permissions, ScoreItems, CertRules, RulesLog, AttendanceSources, ShieldKPI, AuditLog
 - **KJST Shield database** `1Hlx2Y0oeq4bQdvtICcNpJfJWJewzjfVdXT9yG0oOCss` — Students, DMC, BehaviorLog, AttendanceStats, AttendanceDaily, CareLogs, StudentHistory
 - **Users กลาง** `1dfdj6Mnd_Z7QA6Cf7gS1uK5rBSFO__MWMX4ikwjDhXU` (อ่านอย่างเดียว)
+- **ฐานข้อมูลนักเรียนกลาง** `18i5uknX6Ss1PLi5JqMRwdooi9Tewi9EbFJaHlMTEv3g` — ชีต ทะเบียนนักเรียน, ครูที่ปรึกษา (อ่านอย่างเดียว)
 - **E-Attendance 2-2569** `1KFVE1AenbfaRiAWxRefoU9xIR8b0fKgMZ4RReMnruhw` (อ่านอย่างเดียว)
 
 ## ติดตั้ง (บัญชี panth427@kjst.ac.th)
 
 1. สร้างโปรเจกต์ Apps Script แบบ standalone แล้วคัดลอกทุกไฟล์ใน `gas/` (หรือ `clasp clone`/`clasp push` โดยตั้ง `"rootDir": "gas"` ใน `.clasp.json`)
-2. ให้บัญชีเจ้าของสคริปต์มีสิทธิ์แก้ไข System file และ database และมีสิทธิ์อ่าน Users กลางและ E-Attendance
+2. ให้บัญชีเจ้าของสคริปต์มีสิทธิ์แก้ไข System file และ database และมีสิทธิ์อ่าน Users กลาง ฐานข้อมูลนักเรียนกลาง และ E-Attendance
 3. รันตามลำดับใน editor และอนุญาตสิทธิ์:
    - `setup` — สร้างชีตทั้งหมด ใส่เกณฑ์ตั้งต้น และสร้าง pepper ใน Script Properties
    - `syncUsers` — ซิงก์ผู้บริหารและครูจาก Staff_Master
-   - `seedRoles` — ตั้งต้นบทบาท (ผู้บริหาร, ครูที่ปรึกษา/หัวหน้าระดับจาก `_ผู้รับแจ้งเตือน`, ผู้ดูแลระบบ T003 และ T304)
-   - วางข้อมูล DMC ในชีต `DMC` ของไฟล์ database แล้วรัน `importDMC`
+   - `syncStudents` — ซิงก์รายชื่อนักเรียนจากฐานข้อมูลนักเรียนกลาง (ชีต ทะเบียนนักเรียน)
+   - `seedRoles` — ตั้งต้นบทบาท (ผู้บริหาร, ครูที่ปรึกษา/หัวหน้าระดับจากชีต ครูที่ปรึกษา, ผู้ดูแลระบบ T003 และ T304)
+   - วางข้อมูล DMC ในชีต `DMC` ของไฟล์ database แล้วรัน `importDMC` (เพิ่มเบอร์ผู้ปกครองและรหัสเข้าระบบนักเรียน)
    - `pullAttendance` แล้ว `installTriggers` (ดึงข้อมูลเช็กชื่ออัตโนมัติ 12:30 และ 17:30)
    - `testSystem` — ตรวจผลใน Execution log
 4. Deploy › New deployment › Web app · Execute as: **Me** · Who has access: **Anyone**

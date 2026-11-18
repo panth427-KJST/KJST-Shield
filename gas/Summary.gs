@@ -39,6 +39,7 @@ function buildSummary_() {
     x.P += num_(a.present); x.O += num_(a.official); x.LV += num_(a.leave); x.L += num_(a.late); x.A += num_(a.absent); x.D += num_(a.days); x.dress += num_(a.dress);
   });
 
+  studs.sort(function (a, b) { return gnum_(a.grade) - gnum_(b.grade) || Number(a.room) - Number(b.room) || num_(a.number, 999) - num_(b.number, 999); });
   return studs.map(function (s) {
     var x = st[s.student_id], score = base - x.minus + x.plus;
     var rate = x.D ? round1_((x.P + x.O + x.L) / x.D * 100) : null;
@@ -57,7 +58,7 @@ function buildSummary_() {
     Object.keys(x.sev).forEach(function (k) { flag(2, 'พฤติกรรมเสี่ยง: ' + k + ' (' + x.sev[k] + ' ครั้ง)', 'ส่งต่อครูแนะแนว/ฝ่ายปกครอง และหน่วยงานภายนอกตามความเหมาะสม'); });
     var cert = certOf_(score, certs);
     return {
-      id: s.student_id, name: fullName_(s), g: s.grade, r: s.room, sex: s.gender, stage: x.stage,
+      id: s.student_id, no: num_(s.number, 999), name: fullName_(s), g: s.grade, r: s.room, sex: s.gender, stage: x.stage,
       score: score, plus: x.plus, minus: x.minus, P: x.P, O: x.O, LV: x.LV, L: x.L, A: x.A, days: x.D, rate: rate, dress: x.dress,
       lv: lv, reasons: reasons, advice: advice, cert: cert.label, certOk: cert.issue
     };
@@ -102,7 +103,7 @@ function dashboard_(u) {
 /* ===== รายชื่อนักเรียน (แบบย่อ) ===== */
 function studentsList_(u) {
   return scoped_(u).map(function (s) {
-    return { id: s.id, name: s.name, g: s.g, r: s.r, score: s.score, rate: s.rate, lv: s.lv, cert: s.cert, certOk: s.certOk, A: s.A, L: s.L };
+    return { id: s.id, no: s.no, name: s.name, g: s.g, r: s.r, score: s.score, rate: s.rate, lv: s.lv, cert: s.cert, certOk: s.certOk, A: s.A, L: s.L };
   });
 }
 
@@ -126,7 +127,7 @@ function studentDetail_(id, opts) {
   });
   if (opts.contact) {
     var stu = studentMap_()[id] || {};
-    res.parent = stu.parent_name; res.phone = stu.parent_phone;
+    res.parent = (stu.guardian_name || '') + (stu.guardian_relation ? ' (' + stu.guardian_relation + ')' : ''); res.phone = stu.parent_phone;
   }
   if (opts.care) res.care = careOf_(id);
   if (!opts.staff) { delete res.reasons; delete res.advice; delete res.lv; }

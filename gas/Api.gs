@@ -93,6 +93,7 @@ var ACTIONS = {
   usersSave:     { perm: 'users.manage', fn: function (u, p) { return usersSave_(u.id, p); } },
   permissions:   { perm: 'users.manage', fn: function () { return rows_('Permissions').map(function (r) { delete r._row; return r; }); } },
 
+  studentsSync:  { perm: 'data.import', fn: function (u) { return syncStudents_(by_(u)); } },
   importDMC:     { perm: 'data.import', fn: function (u) { return importDMC_(by_(u)); } },
   importOpening: { perm: 'data.import', fn: function (u) { return importOpening_(by_(u)); } },
   attendancePull:{ perm: 'data.import', fn: function (u) { return pullAttendance_(by_(u)); } },

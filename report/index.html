@@ -341,8 +341,8 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:20px}
     <tr><td><code>Config</code></td><td>key, value, note</td><td>ปีการศึกษา ภาคเรียน เกณฑ์เฝ้าระวัง รหัสไฟล์ Users กลาง Client ID</td></tr>
     <tr><td><code>Users_Shield</code></td><td><span style="color:#8A8577">ซิงก์:</span> staff_id, email, display_name, staff_type, position, department, master_active, synced_at · <span style="color:#8A6D12">ของ Shield:</span> shield_role, grade_scope, room_scope, shield_active, assigned_by, assigned_at, last_login, note</td><td>หัวคอลัมน์กลุ่มซิงก์สีเทา กลุ่มของ Shield สีทอง · shield_role ใส่ได้หลายค่าคั่นด้วยจุลภาค</td></tr>
     <tr><td><code>Permissions</code></td><td>action, label, executive, head, advisor, score_admin, sysadmin</td><td>TRUE/FALSE ตามตารางข้อ 5</td></tr>
-    <tr><td><code>Students</code></td><td>student_id, prefix, first_name, last_name, gender, grade, room, status, parent_name, parent_phone, nid_last4, auth_hash, imported_at</td><td>student_id 5 หลัก · ไม่เก็บเลขบัตรเต็มและวันเกิด</td></tr>
-    <tr><td><code>DMC</code></td><td>ตามไฟล์ DMC</td><td>วางข้อมูลแล้วสั่งนำเข้า · ลบทิ้งได้หลังนำเข้า</td></tr>
+    <tr><td><code>Students</code></td><td><span style="color:#8A8577">ซิงก์จากทะเบียนนักเรียนกลาง:</span> student_id, number, prefix, first_name, last_name, gender, grade, room, status, status_date, guardian_name, guardian_relation, synced_at · <span style="color:#8A6D12">เสริมจาก DMC:</span> parent_phone, nid_last4, auth_hash, dmc_at</td><td>student_id 5 หลัก · นักเรียนปัจจุบัน = สถานะ "กำลังศึกษา" · ไม่เก็บเลขบัตรเต็มและวันเกิด</td></tr>
+    <tr><td><code>DMC</code></td><td>ตามไฟล์ DMC</td><td>ใช้เพิ่มเบอร์ผู้ปกครองและรหัสเข้าระบบนักเรียน · ลบทิ้งได้หลังนำเข้า</td></tr>
     <tr><td><code>ScoreItems</code></td><td>item_id, type, category, item_name, points, guidance, is_severe, active, sort_order, updated_by, updated_at</td><td>ข้อ 8</td></tr>
     <tr><td><code>CertRules</code></td><td>min_score, max_score, label, issue_cert, sort_order</td><td>ข้อ 8</td></tr>
     <tr><td><code>BehaviorLog</code></td><td>log_id, date, year, term, student_id, grade, room, stage, item_id, type, category, item_name, points, severe, note, recorded_by, recorded_at, status, void_by, void_at, void_reason</td><td>เก็บชื่อรายการและคะแนน ณ วันบันทึก · ยกเลิกแทนการลบ</td></tr>
@@ -430,10 +430,16 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:20px}
     <li>ผลตรวจแต่งกาย/ทรงผม: เตรียมรับจากชีต <code>_ตรวจระเบียบ</code> (date, room, student_id, items, recorder, at) เมื่อ E-Attendance เพิ่มฟังก์ชันนี้ · ถ้ายังไม่มี ระบบส่วนอื่นทำงานได้ตามปกติ</li>
     <li>ดึงอัตโนมัติวันละ 2 รอบ (12:30 และ 17:30) และกดดึงเองได้จากหน้าตั้งค่า</li>
   </ul>
-  <h3>DMC → Students</h3>
+  <h3>ฐานข้อมูลนักเรียนกลาง → Students (ข้อมูลหลัก)</h3>
   <ul class="c">
-    <li>ผู้ดูแลระบบวางไฟล์ DMC ในชีต <code>DMC</code> แล้วสั่งนำเข้า · ระบบคำนวณ auth_hash จากเลขบัตร + วันเกิด เก็บเลขบัตร 4 ตัวท้าย ไม่เก็บเลขเต็ม</li>
-    <li>ประวัติคะแนนผูกกับ student_id จึงไม่หายเมื่อนำเข้าใหม่</li>
+    <li>ไฟล์ <code>18i5uknX6Ss…</code> ชีต <code>ทะเบียนนักเรียน</code> (คีย์หลัก = เลขประจำตัวนักเรียน 5 หลัก, ไม่มีเลขบัตรประชาชนตามนโยบายของไฟล์) — ผู้ดูแลระบบกดซิงก์เมื่อมีย้ายเข้า/ย้ายออก/เปลี่ยนห้อง</li>
+    <li>นับเป็นนักเรียนปัจจุบันเฉพาะสถานะ "กำลังศึกษา" (รอย้าย ย้ายออก ไม่นับในสถิติ แต่ประวัติยังอยู่)</li>
+    <li>ชีต <code>ครูที่ปรึกษา</code> ใช้ตั้งต้นบทบาทครูที่ปรึกษา (รหัสครู 517 → T517, ตรงกับ Staff_Master 73/73) และหัวหน้าระดับ</li>
+  </ul>
+  <h3>DMC → Students (ข้อมูลเสริม)</h3>
+  <ul class="c">
+    <li>เพิ่มเฉพาะเบอร์ผู้ปกครองและ auth_hash (HMAC ของเลขบัตร + วันเกิด) สำหรับการเข้าระบบของนักเรียน/ผู้ปกครอง จับคู่ด้วยเลขประจำตัวนักเรียน · เก็บเลขบัตร 4 ตัวท้าย ไม่เก็บเลขเต็ม</li>
+    <li>ประวัติคะแนนผูกกับ student_id จึงไม่หายเมื่อซิงก์หรือนำเข้าใหม่</li>
   </ul>
 </section>
 
@@ -487,7 +493,7 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:20px}
     <li>คัดลอกไฟล์ทั้งหมดในโฟลเดอร์ <code>gas/</code> ของ repo นี้ (หรือใช้ <code>clasp push</code> โดยตั้ง <code>rootDir</code> เป็น <code>gas</code>)</li>
     <li>รันฟังก์ชัน <code>setup</code> หนึ่งครั้งและอนุญาตสิทธิ์ ระบบจะสร้างทุกชีตในทั้ง 2 ไฟล์ ตั้งเกณฑ์ตั้งต้น และสร้าง pepper ใน Script Properties</li>
     <li>ใส่ Client ID ของ Google ใน Config (<code>GOOGLE_CLIENT_ID</code>) — ใช้ Client ID เดียวกับ E-Attendance ได้ถ้าหน้าเว็บอยู่โดเมน panth427-kjst.github.io เดียวกัน</li>
-    <li>รัน <code>syncUsers</code> และ <code>seedRoles</code> · วาง DMC ในชีต DMC แล้วรัน <code>importDMC</code> · รัน <code>pullAttendance</code> · รัน <code>installTriggers</code></li>
+    <li>รัน <code>syncUsers</code> → <code>syncStudents</code> → <code>seedRoles</code> · วาง DMC ในชีต DMC แล้วรัน <code>importDMC</code> (ข้อมูลเสริม) · รัน <code>pullAttendance</code> · รัน <code>installTriggers</code></li>
     <li>Deploy › New deployment › Web app · Execute as: Me · Who has access: Anyone แล้วนำ URL ไปใส่ใน <code>app/index.html</code> (CONFIG.API_URL)</li>
     <li>รัน <code>testSystem</code> ดูผลใน Execution log</li>
   </ol>

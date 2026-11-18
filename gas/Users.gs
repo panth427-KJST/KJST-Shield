@@ -54,10 +54,32 @@ function seedRoles_(by, force) {
 
   users.forEach(function (u) { if (u.staff_type === 'ผู้บริหาร') P(u.staff_id).roles.push('executive'); });
 
-  var src = rows_('AttendanceSources').filter(function (s) { return bool_(s.active) && s.file_id; })
+  var unmatched = [], source = '';
+  // 1) ฐานข้อมูลนักเรียนกลาง ชีต "ครูที่ปรึกษา": รหัสครู 1/2 (ตัวเลข → T###), บทบาทพิเศษ = หัวหน้าระดับ
+  var adv = [];
+  try { adv = readExternal_(fileId_('STUDENTS'), 'ครูที่ปรึกษา'); } catch (e) {}
+  var toId = function (c) { c = String(c || '').trim(); if (!c) return ''; return /^\d+$/.test(c) ? 'T' + c : c.toUpperCase(); };
+  adv.forEach(function (r) {
+    var m = String(r['ชั้น/ห้อง'] || '').match(/ม\.\s*(\d)\s*\/\s*(\d+)/);
+    if (!m) return;
+    var room = 'ม.' + m[1] + '/' + Number(m[2]), grade = 'ม.' + m[1];
+    [r['รหัสครู 1'], r['รหัสครู 2']].map(toId).filter(Boolean).forEach(function (id) {
+      if (!byId[id]) { unmatched.push(id + ' (' + room + ')'); return; }
+      var p = P(id); p.roles.push('advisor'); p.rooms.push(room);
+    });
+    if (String(r['บทบาทพิเศษ'] || '').indexOf('หัวหน้าระดับ') >= 0) {
+      var hid = toId(String(r['หัวหน้าระดับ (รหัส ชื่อ)'] || '').split(/\s+/)[0]);
+      if (hid && byId[hid]) { var hp = P(hid); hp.roles.push('head'); hp.grades.push(grade); }
+      else if (hid) unmatched.push(hid + ' (หัวหน้าระดับ ' + grade + ')');
+    }
+  });
+  if (adv.length) source = 'ฐานข้อมูลนักเรียนกลาง (ครูที่ปรึกษา)';
+
+  // 2) สำรอง: E-Attendance ชีต "_ผู้รับแจ้งเตือน" (ใช้เมื่ออ่านข้อ 1 ไม่ได้)
+  var src = adv.length ? null : rows_('AttendanceSources').filter(function (s) { return bool_(s.active) && s.file_id; })
     .sort(function (a, b) { return (b.year + b.term).localeCompare(a.year + a.term); })[0];
-  var unmatched = [];
   if (src) {
+    source = 'E-Attendance (_ผู้รับแจ้งเตือน)';
     var rec = [];
     try { rec = readExternal_(src.file_id, '_ผู้รับแจ้งเตือน'); } catch (e) {}
     rec.forEach(function (r) {
@@ -86,8 +108,8 @@ function seedRoles_(by, force) {
     }));
   });
   lock_(function () { updateRows_('Users_Shield', upd); });
-  audit_(by, 'usersSeedRoles', { users: upd.length, unmatched: unmatched.length });
-  return { updated: upd.length, unmatched: unmatched };
+  audit_(by, 'usersSeedRoles', { users: upd.length, unmatched: unmatched.length, source: source });
+  return { updated: upd.length, unmatched: unmatched, source: source };
 }
 
 function usersList_() {

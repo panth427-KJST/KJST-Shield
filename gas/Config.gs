@@ -8,11 +8,12 @@
 
 var VERSION = '2.0.0';
 
-/** รหัสไฟล์ (เปลี่ยนได้ใน Script Properties: SYSTEM_ID, DATA_ID, MASTER_ID) */
+/** รหัสไฟล์ (เปลี่ยนได้ใน Script Properties: SYSTEM_ID, DATA_ID, MASTER_ID, STUDENTS_ID) */
 var IDS = {
   SYSTEM: '1CyT1E5gRTXJdQj0TPpBnoESuea74cQQmuULRNtK2uzE',   // KJST Shield System file
   DATA:   '1Hlx2Y0oeq4bQdvtICcNpJfJWJewzjfVdXT9yG0oOCss',   // KJST Shield database
-  MASTER: '1dfdj6Mnd_Z7QA6Cf7gS1uK5rBSFO__MWMX4ikwjDhXU'    // Users กลาง (Staff_Master)
+  MASTER: '1dfdj6Mnd_Z7QA6Cf7gS1uK5rBSFO__MWMX4ikwjDhXU',   // Users กลาง (Staff_Master)
+  STUDENTS: '18i5uknX6Ss1PLi5JqMRwdooi9Tewi9EbFJaHlMTEv3g'  // ฐานข้อมูลนักเรียนกลาง (ทะเบียนนักเรียน, ครูที่ปรึกษา)
 };
 
 var TZ = 'Asia/Bangkok';
@@ -61,7 +62,13 @@ var SCHEMA = {
   AuditLog: { file: 'SYSTEM', cols: ['at', 'by', 'action', 'detail'] },
 
   // ---------- database ----------
-  Students: { file: 'DATA', cols: ['student_id', 'prefix', 'first_name', 'last_name', 'gender', 'grade', 'room', 'status', 'parent_name', 'parent_phone', 'nid_last4', 'auth_hash', 'imported_at'] },
+  // ซิงก์จากฐานข้อมูลนักเรียนกลาง (ทะเบียนนักเรียน) + ข้อมูลเสริมจาก DMC (เบอร์ผู้ปกครอง, รหัสเข้าระบบนักเรียน)
+  Students: {
+    file: 'DATA',
+    cols: ['student_id', 'number', 'prefix', 'first_name', 'last_name', 'gender', 'grade', 'room', 'status', 'status_date',
+           'guardian_name', 'guardian_relation', 'synced_at', 'parent_phone', 'nid_last4', 'auth_hash', 'dmc_at'],
+    gold: ['parent_phone', 'nid_last4', 'auth_hash', 'dmc_at']
+  },
   BehaviorLog: {
     file: 'DATA',
     cols: ['log_id', 'date', 'year', 'term', 'student_id', 'grade', 'room', 'stage', 'item_id', 'type', 'category', 'item_name', 'points', 'severe',
@@ -165,8 +172,8 @@ var SEED_SYSADMINS = ['T003', 'T304'];
 /** สถานะการมาเรียนใน E-Attendance (ตัวเลขนำหน้า) */
 var ATT_CODES = { '1': 'มา', '2': 'ราชการ', '3': 'ลา', '4': 'สาย', '5': 'ขาด' };
 
-/** สถานะนักเรียนที่ไม่นับเป็นนักเรียนปัจจุบัน */
-var INACTIVE_STATUS = ['ย้ายออก', 'จบการศึกษา', 'ลาออก', 'พ้นสภาพ'];
+/** นักเรียนปัจจุบัน = สถานะ "กำลังศึกษา" ในทะเบียนนักเรียน (รอย้าย/ย้ายออก/จำหน่าย ไม่นับ) */
+var ACTIVE_STATUS = 'กำลังศึกษา';
 
 var CARE_KINDS = ['ติดตาม', 'เยี่ยมบ้าน', 'ส่งต่อ'];
 var CARE_STATUS = ['ดำเนินการ', 'เสร็จสิ้น'];

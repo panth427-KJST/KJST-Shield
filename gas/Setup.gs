@@ -1,6 +1,6 @@
 /********************************************************************
  * Setup.gs — ติดตั้งระบบและทดสอบ (รันจาก Apps Script editor)
- *  ลำดับครั้งแรก: setup → syncUsers → seedRoles → (วาง DMC) importDMC → pullAttendance → installTriggers → testSystem
+ *  ลำดับครั้งแรก: setup → syncUsers → syncStudents → seedRoles → (วาง DMC) importDMC → pullAttendance → installTriggers → testSystem
  ********************************************************************/
 
 /** สร้างทุกชีตในทั้ง 2 ไฟล์ และใส่ค่าตั้งต้น (รันซ้ำได้ ไม่ทับข้อมูลเดิม) */
@@ -54,6 +54,7 @@ function setup() {
 /* ===== ฟังก์ชันสำหรับรันจาก editor ===== */
 function syncUsers() { Logger.log(JSON.stringify(syncUsers_('editor'), null, 1)); }
 function seedRoles() { Logger.log(JSON.stringify(seedRoles_('editor', false), null, 1)); }
+function syncStudents() { Logger.log(JSON.stringify(syncStudents_('editor'), null, 1)); }
 function importDMC() { Logger.log(JSON.stringify(importDMC_('editor'))); }
 function importOpening() { Logger.log(JSON.stringify(importOpening_('editor'))); }
 function pullAttendance() { Logger.log(JSON.stringify(pullAttendance_('editor'), null, 1)); }
