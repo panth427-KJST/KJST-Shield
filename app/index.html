@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12245A">
+<title>KJST Shield · ระบบดูแลช่วยเหลือนักเรียน</title>
+<link rel="icon" href="../assets/kjst-logo.png">
+<script src="https://accounts.google.com/gsi/client" async defer onload="typeof GIS!=='undefined'&&GIS.ready()"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#12245A;--navy2:#1B3170;--navy3:#0E1D4A;--gold:#C9A227;--gold2:#E3C45E;--cream:#FBF8F1;--paper:#fff;--line:#E8E1CF;--line2:#F1ECDF;--field:#FFFDF8;--fline:#D6CDB5;
+--ink:#1F2430;--muted:#6B6657;--soft:#8A8577;--lv0:#1B3170;--lv1:#C9A227;--lv2:#B4532A;--lv3:#8E1F1F}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--cream);color:var(--ink);font-family:'Sarabun',system-ui,sans-serif;font-size:16px;line-height:1.6}
+h1,h2,h3{font-family:'Prompt',sans-serif;font-weight:500;color:var(--navy);margin:0;line-height:1.35}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--navy2)}
+input,select,textarea{width:100%;min-height:44px;border:1px solid var(--fline);border-radius:10px;background:var(--field);padding:8px 12px}
+textarea{min-height:90px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:15px;color:#3A3A3A}
+.btn{min-height:44px;border-radius:10px;border:1px solid var(--fline);background:#fff;padding:0 16px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.btn:hover{background:#F7F3E8}
+.btn.pri{background:var(--navy);border-color:var(--navy);color:#fff}.btn.pri:hover{background:var(--navy2)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:#1F1A08}
+.btn.red{background:#fff;border-color:#E2B4AE;color:#8E1F1F}
+.btn.sm{min-height:36px;padding:0 12px;font-size:14px}
+.btn:disabled{opacity:.55;cursor:default}
+.muted{color:var(--muted)}.small{font-size:14px}.xs{font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.row>*{flex:1 1 160px;min-width:0}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h2{font-size:18px;margin-bottom:12px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.kpi .l{font-size:14px;color:var(--muted)}.kpi .v{font-family:'Prompt';font-size:28px;color:var(--navy);font-weight:500;line-height:1.35}.kpi .s{font-size:13px;color:var(--soft)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top}
+th{background:#F7F3E8;color:var(--navy);font-weight:600;font-size:14px;white-space:nowrap}
+tr.click{cursor:pointer}tr.click:hover td{background:#FCFAF4}
+td.n,th.n{text-align:right;white-space:nowrap}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.lv0{background:#E7ECF7;color:#12245A}.lv1{background:#FBF0CF;color:#6B5309}.lv2{background:#F7E6DA;color:#7E3A1C}.lv3{background:#F6E3E1;color:#7A1A1A}
+.void{background:#EEE;color:#666}
+.note{background:#FFF8E6;border:1px solid #EAD9A6;border-radius:12px;padding:12px 16px;color:#5A4708}
+.ok-note{background:#EEF3FB;border:1px solid #C9D5EE;border-radius:12px;padding:12px 16px;color:#12245A}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#F3EEE2;border-radius:12px;padding:4px}
+.seg button{min-height:42px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:500;cursor:pointer}
+.seg button.on{background:#fff;color:var(--navy);font-weight:700;box-shadow:0 1px 2px rgba(18,36,90,.12)}
+.bar{display:flex;height:20px;border-radius:6px;overflow:hidden;background:#F3EEE2}
+.bar i{display:block;height:100%}
+.thin{height:8px;border-radius:99px;background:#F3EEE2;overflow:hidden}.thin i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+/* login */
+#login{min-height:100vh;display:flex;flex-wrap:wrap}
+.lpanel{flex:1 1 420px;background:var(--navy);color:#fff;border-right:4px solid var(--gold);padding:48px;display:flex;flex-direction:column;justify-content:space-between;gap:32px}
+.lpanel h1{color:#fff;font-size:38px;font-weight:600}
+.lform{flex:1 1 420px;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.lcard{width:100%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px}
+.logo{background:#FFFDF6;border-radius:12px;padding:6px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.logo img{height:100%;width:auto;display:block}
+.or{display:flex;align-items:center;gap:10px;color:var(--soft);font-size:14px;margin:4px 0}.or:before,.or:after{content:'';flex:1;height:1px;background:var(--line)}
+.msg{border-radius:10px;padding:10px 12px;font-size:14px;margin-top:12px}
+.msg.err{background:#F6E3E1;color:#7A1A1A}.msg.info{background:#EEF3FB;color:#12245A}
+#gbtn{min-height:44px;display:flex;justify-content:center}
+/* app */
+header.top{background:var(--navy);border-bottom:4px solid var(--gold);color:#fff}
+.hin{max-width:1280px;margin:0 auto;padding:12px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:12px;flex:1 1 240px}
+.brand b{font-family:'Prompt';font-weight:500;font-size:17px}.brand b span{color:var(--gold2)}
+.brand small{display:block;color:#B9C3DD;font-size:13px}
+.ybadge{font-size:13px;color:var(--navy);background:var(--gold2);border-radius:999px;padding:3px 12px;font-weight:700;white-space:nowrap}
+.who{text-align:right;line-height:1.3}.who b{font-weight:600;font-size:15px}.who small{display:block;color:#B9C3DD;font-size:12px}
+.icob{width:42px;height:42px;border-radius:10px;border:1px solid #34488A;background:transparent;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+nav.menu{background:var(--navy3)}
+nav.menu .in{max-width:1280px;margin:0 auto;padding:0 12px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.menu button{flex:0 0 auto;background:transparent;border:0;color:#D3DAEC;padding:12px 16px;margin-top:6px;border-radius:8px 8px 0 0;cursor:pointer;font-size:15px}
+nav.menu button.on{background:var(--gold2);color:var(--navy);font-weight:700}
+main{max-width:1280px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-direction:column;gap:18px}
+.ptitle{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px}
+.ptitle h1{font-size:25px}
+.cols{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.cols>.main{flex:999 1 560px;min-width:0}.cols>.side{flex:1 1 340px;min-width:0}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap}
+.subtabs button{min-height:40px;border:1px solid var(--fline);background:#fff;border-radius:999px;padding:0 16px;cursor:pointer}
+.subtabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.pick{max-height:420px;overflow:auto}
+.pick label{display:flex;align-items:center;gap:12px;min-height:50px;border-bottom:1px solid var(--line2);padding:4px 8px;cursor:pointer}
+.pick input{width:22px;height:22px;min-height:0;accent-color:var(--navy);margin:0;flex:0 0 auto}
+.pts{display:flex;align-items:center;border-radius:10px;padding:10px 14px}
+.pts b{font-family:'Prompt';font-size:26px;margin-left:auto}
+.sticky{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 0 4px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(14,29,74,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;z-index:50;overflow:auto}
+.mbox{background:#fff;border-radius:16px;max-width:900px;width:100%;padding:22px;border-top:5px solid var(--gold)}
+.mbox.sm{max-width:480px}
+#loading{position:fixed;inset:0;background:rgba(251,248,241,.6);display:flex;align-items:center;justify-content:center;z-index:80}
+.spin{width:44px;height:44px;border:4px solid #E7ECF7;border-top-color:var(--navy);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;z-index:90;max-width:92%;border-left:4px solid var(--gold)}
+#toast.err{background:#7A1A1A;border-left-color:#F6E3E1}
+.empty{color:var(--soft);padding:16px;text-align:center}
+@media (max-width:860px){.lpanel{border-right:0;border-bottom:4px solid var(--gold);padding:24px 22px;gap:18px}.lpanel p{display:none}.lform{padding:24px 14px}}
+@media (max-width:720px){.lpanel h1{font-size:26px}.seg button{font-size:14px}.hin{padding:10px 14px}main{padding:16px 12px 60px}.card{padding:14px}.who{display:none}.mbox{padding:16px}}
+@media print{header.top,nav.menu,.no-print{display:none!important}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="login" hidden>
+  <div class="lpanel">
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="logo" style="width:64px;height:80px"><img src="../assets/kjst-logo.png" alt="ตราโรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี"></span>
+      <div><div style="font-family:Prompt;font-size:16px">โรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี</div><div style="color:#B9C3DD;font-size:14px">กลุ่มบริหารงานกิจการนักเรียน</div></div>
+    </div>
+    <div>
+      <div style="font-family:Prompt;letter-spacing:3px;color:var(--gold2);font-size:14px;margin-bottom:10px">KJST SHIELD</div>
+      <h1>ระบบดูแลช่วยเหลือนักเรียน</h1>
+      <p style="color:#D3DAEC;font-size:17px;max-width:440px;margin:14px 0 0">ติดตามการมาเรียน ความเรียบร้อย และคะแนนความประพฤติ เพื่อช่วยเหลือนักเรียนได้ทันเวลา</p>
+      <div style="width:64px;height:3px;background:var(--gold);margin-top:24px"></div>
+    </div>
+    <div id="lterm" style="font-size:13px;color:#9AA6C6"></div>
+  </div>
+  <div class="lform">
+    <div class="lcard">
+      <h2 style="font-size:22px">เข้าสู่ระบบ</h2>
+      <p class="muted" style="margin:2px 0 16px">เลือกประเภทผู้ใช้งาน</p>
+      <div class="seg" role="tablist" style="margin-bottom:20px">
+        <button type="button" role="tab" class="on" data-ltab="staff">ครูและบุคลากร</button>
+        <button type="button" role="tab" data-ltab="student">นักเรียน / ผู้ปกครอง</button>
+      </div>
+      <div id="fStaff" style="display:flex;flex-direction:column;gap:14px">
+        <div id="gbtn"></div>
+        <div class="or">หรือใช้รหัสบุคลากร</div>
+        <label class="f">รหัสบุคลากร<input id="lUser" autocomplete="username" autocapitalize="characters" placeholder="T304"></label>
+        <label class="f">รหัสผ่าน<input id="lPass" type="password" autocomplete="current-password"></label>
+        <button type="button" class="btn pri" id="bPass">เข้าสู่ระบบ</button>
+        <p class="xs muted" style="margin:0">ลืมรหัสผ่านหรือต้องการเปลี่ยนรหัส เปลี่ยนได้ที่ระบบ e-Score</p>
+      </div>
+      <div id="fStudent" hidden style="display:flex;flex-direction:column;gap:14px">
+        <label class="f">เลขประจำตัวประชาชน 13 หลัก<input id="lNid" inputmode="numeric" maxlength="17" placeholder="X-XXXX-XXXXX-XX-X" autocomplete="off"></label>
+        <div class="f" style="display:flex;flex-direction:column;gap:5px;font-size:15px">วันเดือนปีเกิด (พ.ศ.)
+          <div style="display:grid;grid-template-columns:1fr 1.3fr 1.2fr;gap:8px">
+            <input id="lDay" inputmode="numeric" maxlength="2" placeholder="วัน" aria-label="วันเกิด">
+            <select id="lMonth" aria-label="เดือนเกิด"></select>
+            <input id="lYear" inputmode="numeric" maxlength="4" placeholder="ปี พ.ศ." aria-label="ปีเกิด">
+          </div>
+        </div>
+        <button type="button" class="btn gold" id="bStudent">ดูผลคะแนนความประพฤติ</button>
+        <p class="xs muted" style="margin:0">ข้อมูลใช้เพื่อยืนยันตัวตนเท่านั้น ระบบไม่เก็บเลขประจำตัวประชาชนเต็ม</p>
+      </div>
+      <div id="lmsg" class="msg" hidden></div>
+      <div id="lstatus" class="xs muted" style="margin-top:14px;text-align:center"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STAFF APP ============ -->
+<section id="app" hidden>
+  <header class="top"><div class="hin">
+    <div class="brand"><span class="logo" style="width:44px;height:54px;padding:4px"><img src="../assets/kjst-logo.png" alt="ตราโรงเรียน"></span>
+      <div><b>KJST <span>SHIELD</span></b><small>ระบบดูแลช่วยเหลือนักเรียน</small></div></div>
+    <span class="ybadge" id="ybadge"></span>
+    <div class="who"><b id="whoName"></b><small id="whoRole"></small></div>
+    <button type="button" class="icob" id="bLogout" aria-label="ออกจากระบบ" title="ออกจากระบบ"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l5-5-5-5"/><path d="M15 12H4"/></svg></button>
+  </div>
+  <nav class="menu" aria-label="เมนูหลัก"><div class="in" id="nav"></div></nav>
+  </header>
+  <main id="page"></main>
+</section>
+
+<!-- ============ STUDENT VIEW ============ -->
+<section id="stu" hidden>
+  <header class="top"><div class="hin">
+    <div class="brand"><span class="logo" style="width:44px;height:54px;padding:4px"><img src="../assets/kjst-logo.png" alt="ตราโรงเรียน"></span>
+      <div><b>KJST <span>SHIELD</span></b><small>ผลคะแนนความประพฤติของนักเรียน</small></div></div>
+    <button type="button" class="btn sm" id="bStuOut">ออกจากระบบ</button>
+  </div></header>
+  <main id="stuBody" style="max-width:920px"></main>
+</section>
+
+<div id="modal" class="modal" hidden><div class="mbox" id="mbox"></div></div>
+<div id="loading" hidden><div class="spin"></div></div>
+<div id="toast" hidden></div>
+
+<script>
+/* ===== ตั้งค่า: ใส่ URL ของ Web App หลัง deploy (Execute as: Me, Who has access: Anyone) ===== */
+const CONFIG = {
+  API_URL:   'ใส่_URL_WEB_APP_ที่ลงท้ายด้วย_/exec',
+  CLIENT_ID: '387152732131-gfk59erhm4uivcmi026n6qdnnr48uufd.apps.googleusercontent.com'
+};
+const PAGE_VERSION = '2.0.0';
+const DOMAIN = 'kjst.ac.th';
+const SKEY = 'kjst_shield_session';
+const MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const MS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const LV = ['ปกติ','เฝ้าระวัง','เสี่ยง','วิกฤต'];
+const LVC = ['#1B3170','#C9A227','#B4532A','#8E1F1F'];
+const S = { session:null, init:null, page:'', stu:null, items:null, pick:{}, type:'หัก' };
+
+const $ = id => document.getElementById(id);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls = { get:k=>{try{return localStorage.getItem(k)}catch(e){return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}, del:k=>{try{localStorage.removeItem(k)}catch(e){}} };
+const can = a => !!(S.init && S.init.user.perms && S.init.user.perms.indexOf(a) >= 0);
+const iso = (d=new Date()) => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function thDate(s){ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (+m[3])+' '+MS[+m[2]-1]+' '+(+m[1]+543) : (s||''); }
+const fmt = n => n == null ? '-' : Number(n).toLocaleString('th-TH');
+const pct = (a,b) => b ? (Math.round(a/b*1000)/10)+'%' : '0%';
+const lvPill = lv => `<span class="pill lv${lv}">${LV[lv]}</span>`;
+const certPill = (label, ok) => `<span class="pill ${ok?'lv0':'lv3'}">${esc(label)}</span>`;
+function busy(on){ $('loading').hidden = !on; }
+function toast(m, err){ const t=$('toast'); t.textContent=m; t.className=err?'err':''; t.hidden=false; clearTimeout(toast.h); toast.h=setTimeout(()=>t.hidden=true, 3800); }
+function modal(html, small){ $('mbox').className='mbox'+(small?' sm':''); $('mbox').innerHTML=html; $('modal').hidden=false; }
+function closeModal(){ $('modal').hidden=true; $('mbox').innerHTML=''; }
+
+/* ===== API ===== */
+async function api(action, body){
+  let res;
+  try{ res = await fetch(CONFIG.API_URL, { method:'POST', redirect:'follow', body: JSON.stringify(Object.assign({ action, session:S.session }, body||{})) }); }
+  catch(e){ const er=new Error('เชื่อมต่อระบบไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); er.code='NET'; throw er; }
+  let j; try{ j = await res.json(); }catch(e){ const er=new Error('ระบบตอบกลับไม่ถูกต้อง ('+res.status+')'); er.code='NET'; throw er; }
+  if(!j.ok){ const er=new Error(j.error); er.code=j.code; if(j.code==='AUTH' && S.session && action!=='logout') setTimeout(()=>expired(j.error)); throw er; }
+  return j.data;
+}
+async function run(p){ busy(true); try{ return await p; }catch(e){ toast(e.message, true); }finally{ busy(false); } }
+
+/* ===== Google Sign-In ===== */
+const GIS = {
+  inited:false, waiters:[],
+  ok(){ return !!(window.google && google.accounts && google.accounts.id); },
+  ready(){ GIS.waiters.splice(0).forEach(f=>f()); },
+  when(f){ if(GIS.ok()) return f(); GIS.waiters.push(f); clearInterval(GIS.poll); GIS.poll=setInterval(()=>{ if(GIS.ok()){ clearInterval(GIS.poll); GIS.ready(); } },300); },
+  render(){
+    GIS.when(()=>{
+      if(!GIS.inited){ google.accounts.id.initialize({ client_id:CONFIG.CLIENT_ID, hd:DOMAIN, callback:r=>loginWith('loginGoogle',{ idToken:r.credential }), auto_select:false, itp_support:true, use_fedcm_for_prompt:true }); GIS.inited=true; }
+      const w = Math.min(360, $('gbtn').clientWidth || 320);
+      $('gbtn').innerHTML='';
+      google.accounts.id.renderButton($('gbtn'), { type:'standard', theme:'outline', size:'large', shape:'rectangular', text:'signin_with', logo_alignment:'left', locale:'th', width:w });
+    });
+  }
+};
+
+/* ===== LOGIN ===== */
+function lmsg(m, kind){ const e=$('lmsg'); e.hidden=!m; e.className='msg '+(kind||'err'); e.textContent=m||''; }
+function showLogin(m, kind){ ['app','stu'].forEach(x=>$(x).hidden=true); $('login').hidden=false; lmsg(m, kind); GIS.render(); }
+async function loginWith(action, body){
+  lmsg(''); busy(true);
+  try{
+    const d = await api(action, body);
+    S.session = d.session; ls.set(SKEY, d.session);
+    await enter();
+  }catch(e){ lmsg(e.message); }
+  finally{ busy(false); }
+}
+function expired(m){ S.session=null; ls.del(SKEY); S.init=null; closeModal(); showLogin(m||'กรุณาเข้าสู่ระบบใหม่', 'info'); }
+async function logout(){ const t=S.session; S.session=null; ls.del(SKEY); S.init=null; try{ google.accounts.id.disableAutoSelect(); }catch(e){} showLogin('ออกจากระบบแล้ว','info'); if(t) try{ await fetch(CONFIG.API_URL,{method:'POST',body:JSON.stringify({action:'logout',session:t})}); }catch(e){} }
+
+async function enter(){
+  const d = await api('init');
+  S.init = d;
+  $('login').hidden = true;
+  if(d.user.kind === 'student'){ $('stu').hidden=false; $('app').hidden=true; const r = await api('myReport'); $('stuBody').innerHTML = '<div class="card">'+report(r,false)+'</div>'; return; }
+  $('stu').hidden = true; $('app').hidden = false;
+  $('ybadge').textContent = 'ปีการศึกษา '+d.year+' · ภาค '+d.term;
+  $('whoName').textContent = d.user.name; $('whoRole').textContent = d.user.roleNames.join(' · ');
+  $('nav').innerHTML = PAGES.filter(p=>p.show()).map(p=>`<button type="button" data-page="${p.id}">${p.label}</button>`).join('');
+  go(PAGES.find(p=>p.show()).id);
+}
+
+/* ===== PAGES ===== */
+const PAGES = [
+  { id:'dashboard', label:'แดชบอร์ด', show:()=>can('dashboard.view'), render:pDashboard },
+  { id:'students', label:'ข้อมูลนักเรียน', show:()=>can('student.view'), render:pStudents },
+  { id:'scores', label:'คะแนนความประพฤติ', show:()=>can('score.record'), render:pScores },
+  { id:'care', label:'ติดตามและส่งต่อ', show:()=>can('student.view'), render:pCare },
+  { id:'shield', label:'KJST SHIELD', show:()=>can('dashboard.view'), render:pShield },
+  { id:'admin', label:'ตั้งค่าระบบ', show:()=>['rules.edit','users.manage','data.import','settings.manage'].some(can), render:pAdmin }
+];
+function go(id){
+  S.page=id;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.page===id));
+  window.scrollTo(0,0);
+  $('page').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  PAGES.find(p=>p.id===id).render();
+}
+const ptitle = (t, sub, right) => `<div class="ptitle"><div><h1>${t}</h1>${sub?`<div class="muted small">${sub}</div>`:''}</div>${right||''}</div>`;
+
+/* ----- dashboard ----- */
+async function pDashboard(){
+  const d = await run(api('dashboard')); if(!d) return;
+  const L=d.levels, need=L[1]+L[2]+L[3];
+  const al=[];
+  if(L[3]) al.push(`กลุ่ม<b>วิกฤต</b> ${L[3]} คน — ดำเนินการส่งต่อทันที`);
+  if(L[2]) al.push(`กลุ่ม<b>เสี่ยง</b> ${L[2]} คน`);
+  if(d.roomsTotal && d.roomsReported < d.roomsTotal) al.push(`วันนี้ยังไม่ได้เช็กชื่อ <b>${d.roomsTotal-d.roomsReported}</b> ห้อง`);
+  const maxN = Math.max(1, ...d.certs.map(c=>c.n));
+  $('page').innerHTML = ptitle(S.init.user.roles.some(r=>['executive','score_admin','sysadmin'].includes(r))?'ภาพรวมโรงเรียน':'ภาพรวมนักเรียนในความดูแล',
+      'ข้อมูล ณ '+thDate(d.today)+(d.attUpdated?' · ข้อมูลเช็กชื่อล่าสุด '+esc(d.attUpdated):''))+
+    `<div class="grid">
+      <div class="card kpi"><div class="l">นักเรียนในความดูแล</div><div class="v">${fmt(d.total)}</div><div class="s">ชาย ${fmt(d.male)} · หญิง ${fmt(d.female)}</div></div>
+      <div class="card kpi"><div class="l">อัตรามาเรียนเฉลี่ย</div><div class="v">${d.avgRate==null?'-':d.avgRate+'%'}</div><div class="s">ทั้งปีการศึกษา ${esc(d.year)}</div></div>
+      <div class="card kpi"><div class="l">คะแนนความประพฤติเฉลี่ย</div><div class="v">${d.avgScore==null?'-':d.avgScore}</div><div class="s">ฐาน 100 คะแนน</div></div>
+      <div class="card kpi"><div class="l">ต้องติดตาม</div><div class="v">${fmt(need)}</div><div class="s">เฝ้าระวัง ${L[1]} · เสี่ยง ${L[2]} · วิกฤต ${L[3]}</div></div>
+      <div class="card kpi"><div class="l">เช็กชื่อวันนี้</div><div class="v">${d.roomsReported}/${d.roomsTotal}</div><div class="s">ห้อง</div></div>
+      <div class="card kpi"><div class="l">ความสำเร็จ KJST SHIELD</div><div class="v">${d.shield==null?'-':d.shield+'%'}</div><div class="s">ปีการศึกษา ${esc(d.year)}</div></div>
+    </div>
+    ${al.length?`<div class="note">${al.join(' · ')}</div>`:'<div class="ok-note">ไม่มีการแจ้งเตือนในขณะนี้</div>'}
+    <div class="cols">
+      <div class="card main"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:12px"><h2 style="margin:0">สถานะนักเรียนแยกระดับชั้น</h2>
+        <div class="legend">${LV.map((l,i)=>`<span><i style="background:${LVC[i]}"></i>${l}</span>`).join('')}</div></div>
+        ${d.byGrade.map(g=>`<div style="display:grid;grid-template-columns:52px minmax(0,1fr) 70px;gap:12px;align-items:center;margin:10px 0">
+          <b style="color:var(--navy)">${esc(g.grade)}</b><div class="bar">${g.lv.map((n,i)=>n?`<i style="width:${n/g.n*100}%;background:${LVC[i]}" title="${LV[i]} ${n} คน"></i>`:'').join('')}</div>
+          <span class="small muted" style="text-align:right">${fmt(g.n)} คน</span></div>`).join('') || '<div class="empty">ยังไม่มีข้อมูลนักเรียน</div>'}
+      </div>
+      <div class="card side"><h2>ผลรับรองความประพฤติ</h2>
+        ${d.certs.map(c=>`<div style="margin:12px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><span>${esc(c.label)}</span><b>${fmt(c.n)}</b></div>
+          <div class="thin"><i style="width:${c.n?Math.max(c.n/maxN*100,2):0}%;background:${c.issue?'#1B3170':'#8E1F1F'}"></i></div></div>`).join('')}
+      </div>
+    </div>
+    <div class="card"><h2>นักเรียนที่ต้องติดตาม</h2>${alertTable(d.alerts)}</div>
+    <div class="card"><h2>วันนี้: ขาด · ลา · สาย · ราชการ · ผิดระเบียบ</h2>${d.todayList.length?`<div class="tw"><table><tr><th>นักเรียน</th><th>ชั้น</th><th>สถานะ</th><th>ผิดระเบียบ</th></tr>
+      ${d.todayList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td>${esc(t.status)}</td><td class="small">${esc(t.dress||'-')}</td></tr>`).join('')}</table></div>`:'<div class="empty">ยังไม่มีรายการผิดปกติวันนี้ (หรือยังไม่ได้ดึงข้อมูลเช็กชื่อ)</div>'}</div>
+    <div class="card"><h2>ข้อมูลย้อนหลังรายปีการศึกษา</h2><div id="hist" class="empty">กำลังโหลด…</div></div>`;
+  api('history').then(h=>{ if(S.page!=='dashboard'||!$('hist')) return; $('hist').className=''; $('hist').innerHTML = `<div class="tw"><table><tr><th>ปีการศึกษา</th><th class="n">นักเรียน</th><th class="n">อัตรามาเรียน</th><th class="n">ครั้งที่หัก</th><th class="n">ครั้งที่เพิ่ม</th><th class="n">SHIELD</th></tr>
+    ${h.map(y=>`<tr><td><b>${esc(y.year)}</b> ${y.current?'<span class="pill lv0">ปัจจุบัน</span>':''}</td><td class="n">${y.students==null?'-':fmt(y.students)}</td><td class="n">${y.attRate==null?'-':y.attRate+'%'}</td><td class="n">${fmt(y.minus)}</td><td class="n">${fmt(y.plus)}</td><td class="n">${y.shield==null?'-':y.shield+'%'}</td></tr>`).join('')}</table></div>`; }).catch(()=>{});
+}
+function alertTable(list){
+  if(!list.length) return '<div class="empty">ไม่มีนักเรียนที่ต้องติดตาม</div>';
+  return `<div class="tw"><table><tr><th>ระดับ</th><th>นักเรียน</th><th>ชั้น</th><th class="n">คะแนน</th><th class="n">มาเรียน</th><th>สาเหตุ</th><th>แนวทางช่วยเหลือ/ส่งต่อ</th></tr>
+    ${list.map(s=>`<tr class="click" data-sid="${esc(s.id)}"><td>${lvPill(s.lv)}</td><td><b style="font-weight:500">${esc(s.name)}</b><div class="xs muted">${esc(s.id)}</div></td><td>${esc(s.cls)}</td><td class="n"><b>${s.score}</b></td><td class="n">${s.rate==null?'-':s.rate+'%'}</td><td class="small">${s.reasons.map(esc).join('<br>')}</td><td class="small">${s.advice.map(esc).join('<br>')}</td></tr>`).join('')}</table></div>`;
+}
+
+/* ----- students ----- */
+async function ensureStudents(force){ if(!S.stu || force) S.stu = await api('students'); return S.stu; }
+function classFilter(gid, rid, all){
+  const cls = S.init.classes, gs = Object.keys(cls);
+  return `<label class="f">ระดับชั้น<select id="${gid}">${all?'<option value="">ทุกระดับชั้น</option>':''}${gs.map(g=>`<option>${g}</option>`).join('')}</select></label>
+          <label class="f">ห้อง<select id="${rid}"><option value="">ทุกห้อง</option></select></label>`;
+}
+function bindClassFilter(gid, rid, cb){
+  const fill=()=>{ const g=$(gid).value, rs=g?(S.init.classes[g]||[]):[]; $(rid).innerHTML='<option value="">ทุกห้อง</option>'+rs.map(r=>`<option value="${r}">ห้อง ${r}</option>`).join(''); };
+  $(gid).onchange=()=>{ fill(); cb(); }; $(rid).onchange=cb; fill();
+}
+async function pStudents(){
+  const list = await run(ensureStudents(true)); if(!list) return;
+  $('page').innerHTML = ptitle('ข้อมูลนักเรียนและการติดตาม', 'แตะที่แถวเพื่อดูรายละเอียดรายคน')+
+    `<div class="card"><div class="row" style="margin-bottom:14px">${classFilter('sG','sR',true)}
+      <label class="f">กลุ่ม<select id="sL"><option value="">ทั้งหมด</option>${LV.map((l,i)=>`<option value="${i}">${l}</option>`).join('')}</select></label>
+      <label class="f" style="flex:2 1 200px">ค้นหา<input id="sQ" placeholder="ชื่อ หรือ รหัสนักเรียน"></label></div><div id="sT"></div></div>`;
+  const draw=()=>{
+    const g=$('sG').value, r=$('sR').value, lv=$('sL').value, q=$('sQ').value.trim().toLowerCase();
+    const f = S.stu.filter(s=>(!g||s.g===g)&&(!r||s.r===r)&&(lv===''||String(s.lv)===lv)&&(!q||(s.id+' '+s.name).toLowerCase().includes(q)));
+    $('sT').innerHTML = `<div class="xs muted" style="margin-bottom:6px">พบ ${fmt(f.length)} คน</div><div class="tw"><table><tr><th>รหัส</th><th>ชื่อ-สกุล</th><th>ชั้น</th><th class="n">คะแนน</th><th class="n">มาเรียน</th><th>ผลรับรอง</th><th>สถานะ</th></tr>
+      ${f.slice(0,600).map(s=>`<tr class="click" data-sid="${esc(s.id)}"><td>${esc(s.id)}</td><td>${esc(s.name)}</td><td>${esc(s.g+'/'+s.r)}</td><td class="n"><b>${s.score}</b></td><td class="n">${s.rate==null?'-':s.rate+'%'}</td><td>${certPill(s.cert,s.certOk)}</td><td>${lvPill(s.lv)}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">ไม่พบนักเรียน</td></tr>'}</table></div>`;
+  };
+  bindClassFilter('sG','sR',draw); $('sL').onchange=draw; $('sQ').oninput=draw; draw();
+}
+async function openStudent(id){
+  const d = await run(api('student',{ id })); if(!d) return;
+  modal(`<div style="text-align:right" class="no-print"><button type="button" class="btn sm" data-close>ปิด</button></div>`+report(d,true));
+}
+function report(d, staff){
+  const att = d.days ? `มา ${d.P} · ราชการ ${d.O} · สาย ${d.L} · ลา ${d.LV} · ขาด ${d.A}` : 'ยังไม่มีข้อมูลเช็กชื่อ';
+  let h = `<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start">
+    <div><h2 style="font-size:22px">${esc(d.name)}</h2><div class="muted small">รหัส ${esc(d.id)} · ชั้น ${esc(d.g+'/'+d.r)} · ช่วงชั้น ${esc(d.stage)} · ปีการศึกษา ${esc(d.year)}/${esc(d.term)}</div></div>
+    <div>${staff&&d.lv!=null?lvPill(d.lv):''}</div></div>
+  <div class="grid" style="margin:16px 0">
+    <div class="card kpi"><div class="l">คะแนนความประพฤติ</div><div class="v">${d.score}</div><div class="s">ฐาน 100 · เพิ่ม +${d.plus} · หัก −${d.minus}</div></div>
+    <div class="card kpi"><div class="l">ผลรับรองความประพฤติ</div><div class="v" style="font-size:20px">${esc(d.cert)}</div><div class="s">${d.certOk?'ออกหนังสือรับรองได้':'ไม่ออกหนังสือรับรอง'}</div></div>
+    <div class="card kpi"><div class="l">เวลาเรียน</div><div class="v">${d.rate==null?'-':d.rate+'%'}</div><div class="s">${att}</div></div>
+    <div class="card kpi"><div class="l">ผิดระเบียบแต่งกาย/ทรงผม</div><div class="v">${d.dress}</div><div class="s">ครั้ง</div></div>
+  </div>`;
+  if(staff && d.phone) h += `<p>ผู้ปกครอง: ${esc(d.parent||'-')} · <a href="tel:${esc(d.phone)}">${esc(d.phone)}</a></p>`;
+  if(staff && d.reasons && d.reasons.length) h += `<div class="note" style="margin-bottom:14px"><b>สาเหตุที่ต้องติดตาม</b><br>${d.reasons.map(esc).join('<br>')}<br><b>แนวทางช่วยเหลือ/ส่งต่อ</b><br>${d.advice.map(esc).join('<br>')}</div>`;
+  h += `<p class="xs muted">คะแนนสะสมตลอดช่วงชั้น (${esc(d.stage)}) และเริ่ม 100 ใหม่เมื่อขึ้น ม.4 · คะแนนเกิน 100 ได้จากคะแนนความดี</p>`;
+  h += `<h3 style="font-size:17px;margin:14px 0 8px">ประวัติคะแนนความประพฤติ</h3>`+(d.logs.length?`<div class="tw"><table><tr><th>วันที่</th><th>ปี/ภาค</th><th>รายการ</th><th class="n">คะแนน</th><th>หมายเหตุ</th></tr>
+    ${d.logs.map(l=>`<tr style="${l.counted?'':'opacity:.55'}"><td class="small">${thDate(l.date)}</td><td>${esc(l.year+'/'+l.term)}</td><td>${esc(l.item)}${l.status==='void'?' <span class="pill void">ยกเลิก</span>':(l.counted?'':' <span class="xs">(ช่วงชั้นเดิม)</span>')}</td>
+      <td class="n"><b style="color:${l.points<0?'#8E1F1F':'#1B3170'}">${l.points>0?'+':''}${l.points}</b></td><td class="small">${esc(l.note)}${staff&&l.void_reason?'<br><i>ยกเลิก: '+esc(l.void_reason)+'</i>':''}${staff&&l.by?'<div class="xs muted">'+esc(l.by)+'</div>':''}</td></tr>`).join('')}</table></div>`:'<p class="muted">ยังไม่มีรายการ</p>');
+  h += `<h3 style="font-size:17px;margin:18px 0 8px">การมาเรียน (เฉพาะวันที่ไม่ปกติ ย้อนหลัง)</h3>`+(d.att.length?`<div class="tw"><table><tr><th>วันที่</th><th>สถานะ</th><th>ผิดระเบียบ</th></tr>${d.att.map(a=>`<tr><td class="small">${thDate(a.date)}</td><td>${esc(a.status)}</td><td class="small">${esc(a.dress||'-')}</td></tr>`).join('')}</table></div>`:'<p class="muted">ไม่มีรายการ</p>');
+  if(staff && d.care) h += `<h3 style="font-size:17px;margin:18px 0 8px">การติดตาม เยี่ยมบ้าน ส่งต่อ</h3>`+careTable(d.care,false);
+  return h;
+}
+
+/* ----- scores ----- */
+async function pScores(){
+  const [items, list] = await run(Promise.all([S.items?Promise.resolve(S.items):api('scoreItems'), ensureStudents()])) || [];
+  if(!items) return; S.items = items; S.pick = {};
+  $('page').innerHTML = ptitle('บันทึกคะแนนความประพฤติ', 'คะแนนของแต่ละรายการกำหนดโดยผู้ดูแลระบบ')+
+  `<div class="cols"><div class="card main">
+    <div class="seg" style="max-width:420px;margin-bottom:14px"><button type="button" data-type="หัก" class="${S.type==='หัก'?'on':''}">หักคะแนน</button><button type="button" data-type="เพิ่ม" class="${S.type==='เพิ่ม'?'on':''}">เพิ่มคะแนน</button></div>
+    <div class="row"><label class="f" style="flex:3 1 260px">รายการ<select id="bItem"></select></label><label class="f">วันที่<input type="date" id="bDate" value="${iso()}" max="${iso()}"></label></div>
+    <div id="bPts" style="margin:12px 0"></div>
+    <h2 style="font-size:16px;margin:16px 0 8px">เลือกนักเรียน</h2>
+    <div class="row" style="margin-bottom:8px">${classFilter('bG','bR',true)}<label class="f" style="flex:2 1 200px">ค้นหา<input id="bQ" placeholder="ชื่อ หรือ รหัส"></label></div>
+    <div class="pick" id="bList"></div>
+    <label class="f" style="margin-top:12px">หมายเหตุ (ไม่บังคับ)<input id="bNote" maxlength="500"></label>
+    <div class="sticky"><span id="bCount" class="small" style="flex:1"></span><button type="button" class="btn sm" id="bClear">ล้างที่เลือก</button><button type="button" class="btn pri" id="bConfirm">ตรวจสอบและยืนยัน</button></div>
+  </div>
+  <div class="card side"><h2>รายการล่าสุด</h2><div id="bRecent" class="empty">กำลังโหลด…</div></div></div>`;
+  const fillItems=()=>{
+    const its = S.items.filter(i=>i.type===S.type), cats=[...new Set(its.map(i=>i.category))];
+    $('bItem').innerHTML = cats.map(c=>`<optgroup label="${esc(c)}">${its.filter(i=>i.category===c).map(i=>`<option value="${esc(i.item_id)}">${esc(i.item_name)} (${S.type==='หัก'?'−':'+'}${i.points})</option>`).join('')}</optgroup>`).join('');
+    showPts();
+  };
+  const showPts=()=>{
+    const it = curItem(); if(!it){ $('bPts').innerHTML=''; return; }
+    $('bPts').innerHTML = `<div class="pts" style="${it.type==='หัก'?'background:#F6E3E1;color:#7A1A1A':'background:#E7ECF7;color:#12245A'}"><span>คะแนนตามเกณฑ์${it.is_severe?' · พฤติกรรมเสี่ยง':''}</span><b>${it.type==='หัก'?'−':'+'}${it.points}</b></div>`+
+      (it.guidance?`<div class="xs muted" style="margin-top:6px">แนวทาง: ${esc(it.guidance)}</div>`:'');
+    drawPick();
+  };
+  const drawPick=()=>{
+    const g=$('bG').value, r=$('bR').value, q=$('bQ').value.trim().toLowerCase(), it=curItem(), d=it?(it.type==='หัก'?-it.points:it.points):0;
+    const f = S.stu.filter(s=>(!g||s.g===g)&&(!r||s.r===r)&&(!q||(s.id+' '+s.name).toLowerCase().includes(q))).slice(0,300);
+    $('bList').innerHTML = f.length ? f.map(s=>{ const on=!!S.pick[s.id], after=s.score+d;
+      return `<label><input type="checkbox" data-pick="${esc(s.id)}" ${on?'checked':''}><span style="flex:1;min-width:0"><b style="font-weight:500">${esc(s.name)}</b><span class="xs muted"> · ${esc(s.id)} · ${esc(s.g+'/'+s.r)}</span></span>
+        <span class="small" style="white-space:nowrap;font-weight:600;color:${on&&after<50?'#8E1F1F':(on?'#12245A':'#8A8577')}">${on?s.score+' → '+after:s.score}</span></label>`; }).join('') : '<div class="empty">ไม่พบนักเรียน — เลือกชั้น/ห้อง หรือค้นหาชื่อ</div>';
+    $('bCount').textContent = 'เลือกแล้ว '+Object.keys(S.pick).length+' คน';
+  };
+  fillItems(); bindClassFilter('bG','bR',drawPick); $('bQ').oninput=drawPick; $('bItem').onchange=showPts;
+  $('page').querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{ S.type=b.dataset.type; $('page').querySelectorAll('[data-type]').forEach(x=>x.classList.toggle('on',x===b)); fillItems(); });
+  $('bList').onchange=e=>{ const id=e.target.dataset.pick; if(!id) return; if(e.target.checked) S.pick[id]=1; else delete S.pick[id]; drawPick(); };
+  $('bClear').onclick=()=>{ S.pick={}; drawPick(); };
+  $('bConfirm').onclick=confirmScore;
+  loadRecent();
+}
+const curItem = () => S.items && S.items.find(i=>i.item_id===($('bItem')||{}).value);
+function confirmScore(){
+  const it=curItem(), ids=Object.keys(S.pick);
+  if(!it) return toast('กรุณาเลือกรายการ', true);
+  if(!ids.length) return toast('กรุณาเลือกนักเรียนอย่างน้อย 1 คน', true);
+  const d=it.type==='หัก'?-it.points:it.points, sm={}; S.stu.forEach(s=>sm[s.id]=s);
+  modal(`<h2 style="font-size:20px">ยืนยันการบันทึก</h2><p class="muted" style="margin:4px 0 12px">${esc(it.item_name)} · ${it.type} ${it.points} คะแนน · ${thDate($('bDate').value)}</p>
+    <div class="tw" style="max-height:300px;overflow:auto"><table>${ids.map(id=>{ const s=sm[id], a=s.score+d; return `<tr><td>${esc(s.name)}<div class="xs muted">${esc(s.g+'/'+s.r)}</div></td><td class="n">${s.score} → <b style="color:${a<50?'#8E1F1F':'#12245A'}">${a}</b></td></tr>`; }).join('')}</table></div>
+    ${$('bNote').value?`<p class="small">หมายเหตุ: ${esc($('bNote').value)}</p>`:''}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button type="button" class="btn" data-close>ยกเลิก</button><button type="button" class="btn pri" id="bDo">ยืนยันบันทึก ${ids.length} คน</button></div>`, true);
+  $('bDo').onclick=async()=>{
+    const r = await run(api('addScore',{ item_id:it.item_id, ids, date:$('bDate').value, note:$('bNote').value })); if(!r) return;
+    closeModal(); toast('บันทึกแล้ว '+r.count+' คน'+(r.missing.length?' · ข้าม '+r.missing.length+' คน':''));
+    S.pick={}; $('bNote').value=''; await ensureStudents(true); $('bQ').dispatchEvent(new Event('input')); loadRecent();
+  };
+}
+async function loadRecent(){
+  try{
+    const list = await api('recentScores',{ limit:60 });
+    if(!$('bRecent')) return;
+    $('bRecent').className='';
+    $('bRecent').innerHTML = list.length ? list.map(l=>`<div style="border-bottom:1px solid var(--line2);padding:8px 0;${l.status==='void'?'opacity:.55':''}">
+      <div style="display:flex;justify-content:space-between;gap:8px"><b style="font-weight:500">${esc(l.name)}</b><b style="color:${l.points<0?'#8E1F1F':'#1B3170'}">${l.points>0?'+':''}${l.points}</b></div>
+      <div class="xs muted">${esc(l.item)} · ${esc(l.cls)} · ${thDate(l.date)}</div><div class="xs muted">${esc(l.by)}</div>
+      ${l.status==='void'?`<div class="xs"><span class="pill void">ยกเลิก</span> ${esc(l.void_reason)}</div>`:(can('score.void')?`<button type="button" class="btn red sm" style="margin-top:6px" data-void="${esc(l.log_id)}">ยกเลิกรายการ</button>`:'')}</div>`).join('') : '<div class="empty">ยังไม่มีรายการ</div>';
+  }catch(e){ if($('bRecent')) $('bRecent').textContent=e.message; }
+}
+function voidScore(id){
+  modal(`<h2 style="font-size:20px">ยกเลิกรายการคะแนน</h2><p class="muted small">รายการจะไม่ถูกลบ แต่จะไม่นับคะแนน และบันทึกว่าใครยกเลิก</p>
+    <label class="f">เหตุผลที่ยกเลิก<textarea id="vReason"></textarea></label>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-close>ปิด</button><button type="button" class="btn red" id="vDo">ยืนยันยกเลิก</button></div>`, true);
+  $('vDo').onclick=async()=>{ const r=await run(api('voidScore',{ log_id:id, reason:$('vReason').value })); if(!r) return; closeModal(); toast('ยกเลิกรายการแล้ว'); await ensureStudents(true); loadRecent(); };
+}
+
+/* ----- care ----- */
+function careTable(list, withName){
+  if(!list.length) return '<div class="empty">ยังไม่มีบันทึก</div>';
+  return `<div class="tw"><table><tr><th>วันที่</th>${withName?'<th>นักเรียน</th>':''}<th>ประเภท</th><th>รายละเอียด</th><th>สถานะ</th>${can('care.record')&&withName?'<th></th>':''}</tr>
+    ${list.map(c=>`<tr><td class="small">${thDate(c.date)}</td>${withName?`<td class="click" data-sid="${esc(c.student_id)}" style="cursor:pointer"><b style="font-weight:500">${esc(c.name)}</b><div class="xs muted">${esc(c.cls)}</div></td>`:''}
+      <td>${esc(c.kind)}${c.referred_to?'<div class="xs muted">ถึง '+esc(c.referred_to)+'</div>':''}</td><td class="small" style="white-space:pre-line">${esc(c.detail)}<div class="xs muted">${esc(c.by)}</div></td>
+      <td><span class="pill ${c.status==='เสร็จสิ้น'?'lv0':'lv1'}">${esc(c.status)}</span></td>
+      ${can('care.record')&&withName?`<td><button type="button" class="btn sm" data-care="${esc(c.care_id)}">อัปเดต</button></td>`:''}</tr>`).join('')}</table></div>`;
+}
+async function pCare(){
+  const [list] = await run(Promise.all([api('careList',{}), ensureStudents()])) || [];
+  if(!list) return;
+  const canRec = can('care.record') && S.init.careClasses.length;
+  $('page').innerHTML = ptitle('ติดตาม เยี่ยมบ้าน และส่งต่อ', canRec?'บันทึกได้เฉพาะนักเรียนในชั้น/ห้องที่รับผิดชอบ':'ดูได้อย่างเดียว')+
+    `<div class="cols"><div class="card main"><div class="row" style="margin-bottom:12px"><label class="f">สถานะ<select id="cS"><option value="">ทั้งหมด</option>${S.init.careStatus.map(s=>`<option>${s}</option>`).join('')}</select></label></div><div id="cT"></div></div>
+    ${canRec?`<div class="card side"><h2>บันทึกใหม่</h2>
+      <label class="f">ห้อง<select id="cCls">${S.init.careClasses.map(c=>`<option>${c}</option>`).join('')}</select></label>
+      <label class="f" style="margin-top:10px">นักเรียน<select id="cStu"></select></label>
+      <div class="row" style="margin-top:10px"><label class="f">ประเภท<select id="cKind">${S.init.careKinds.map(k=>`<option>${k}</option>`).join('')}</select></label><label class="f">วันที่<input type="date" id="cDate" value="${iso()}" max="${iso()}"></label></div>
+      <label class="f" style="margin-top:10px" id="cRefW">ส่งต่อถึง<input id="cRef" placeholder="ครูแนะแนว / ฝ่ายปกครอง / รพ.สต."></label>
+      <label class="f" style="margin-top:10px">รายละเอียด<textarea id="cDet"></textarea></label>
+      <button type="button" class="btn pri" id="cSave" style="width:100%;margin-top:12px">บันทึก</button></div>`:''}</div>`;
+  const draw=()=>{ const st=$('cS').value; $('cT').innerHTML = careTable(list.filter(c=>!st||c.status===st), true); };
+  $('cS').onchange=draw; draw();
+  if(canRec){
+    const fillStu=()=>{ const [g,r]=$('cCls').value.split('/'); $('cStu').innerHTML=S.stu.filter(s=>s.g===g&&s.r===r).map(s=>`<option value="${esc(s.id)}">${esc(s.name)} (${s.score})</option>`).join(''); };
+    const ref=()=>$('cRefW').hidden = $('cKind').value!=='ส่งต่อ';
+    $('cCls').onchange=fillStu; $('cKind').onchange=ref; fillStu(); ref();
+    $('cSave').onclick=async()=>{ const r=await run(api('careAdd',{ student_id:$('cStu').value, kind:$('cKind').value, date:$('cDate').value, detail:$('cDet').value, referred_to:$('cRef').value })); if(r){ toast('บันทึกแล้ว'); go('care'); } };
+  }
+}
+function careUpdate(id){
+  modal(`<h2 style="font-size:20px">อัปเดตการติดตาม</h2>
+    <label class="f" style="margin-top:10px">สถานะ<select id="uS">${S.init.careStatus.map(s=>`<option>${s}</option>`).join('')}</select></label>
+    <label class="f" style="margin-top:10px">บันทึกเพิ่มเติม<textarea id="uA"></textarea></label>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-close>ปิด</button><button type="button" class="btn pri" id="uDo">บันทึก</button></div>`, true);
+  $('uDo').onclick=async()=>{ const r=await run(api('careUpdate',{ care_id:id, status:$('uS').value, append:$('uA').value })); if(r){ closeModal(); toast('อัปเดตแล้ว'); go('care'); } };
+}
+
+/* ----- shield ----- */
+async function pShield(){
+  const d = await run(api('shield')); if(!d) return;
+  $('page').innerHTML = `<div class="card" style="background:var(--navy);color:#fff;text-align:center;border:0;border-bottom:4px solid var(--gold)">
+      <div style="font-family:Prompt;letter-spacing:3px;color:var(--gold2)">KJST SHIELD</div>
+      <div style="font-family:Prompt;font-size:44px;color:var(--gold2);line-height:1.2">${d.overall==null?'-':d.overall+'%'}</div>
+      <div style="color:#D3DAEC">ความสำเร็จภาพรวม ปีการศึกษา ${esc(d.year)}</div></div>
+    <div class="grid">${d.comps.map(c=>`<div class="card kpi"><div class="l"><b>${c.code}</b> · ${esc(c.name)}</div><div class="v">${c.pct}%</div><div class="thin"><i style="width:${c.pct}%;background:var(--gold)"></i></div></div>`).join('')}</div>
+    <div class="card"><h2>ตัวชี้วัดการดำเนินงาน</h2><div class="tw"><table><tr><th></th><th>ตัวชี้วัด</th><th class="n">เป้าหมาย</th><th class="n">ผล</th><th style="min-width:140px">ความสำเร็จ</th></tr>
+      ${d.items.map((it,i)=>`<tr><td><b>${it.code}</b></td><td>${esc(it.indicator)}</td>
+        <td class="n">${d.editable?`<input type="number" step="any" data-k="${i}" data-f="target" value="${esc(it.target)}" style="max-width:100px">`:esc(it.target)}</td>
+        <td class="n">${d.editable&&!it.auto?`<input type="number" step="any" data-k="${i}" data-f="actual" value="${esc(it.actual)}" style="max-width:100px">`:esc(it.actual)+(it.auto?' <span class="pill lv0">อัตโนมัติ</span>':'')}</td>
+        <td><div class="thin"><i style="width:${it.pct}%;background:var(--navy2)"></i></div><span class="xs">${it.pct}%</span></td></tr>`).join('')}</table></div>
+      ${d.editable?'<button type="button" class="btn pri" id="shSave" style="margin-top:12px">บันทึกผลการดำเนินงาน</button>':''}</div>`;
+  if(d.editable) $('shSave').onclick=async()=>{
+    const items=d.items.map((it,i)=>{ const t=document.querySelector(`[data-k="${i}"][data-f="target"]`), a=document.querySelector(`[data-k="${i}"][data-f="actual"]`); return { code:it.code, indicator:it.indicator, target:t?t.value:it.target, actual:a?a.value:it.raw }; });
+    const r=await run(api('shieldSave',{ items })); if(r){ toast('บันทึกแล้ว'); go('shield'); }
+  };
+}
+
+/* ----- admin ----- */
+const ADMIN_TABS = [
+  { id:'rules', label:'เกณฑ์คะแนน', perm:'rules.edit', render:aRules },
+  { id:'users', label:'ผู้ใช้และบทบาท', perm:'users.manage', render:aUsers },
+  { id:'data', label:'นำเข้าข้อมูล', perm:'data.import', render:aData },
+  { id:'settings', label:'ตั้งค่า', perm:'settings.manage', render:aSettings }
+];
+function pAdmin(tab){
+  const tabs = ADMIN_TABS.filter(t=>can(t.perm)); tab = tab && tabs.find(t=>t.id===tab) ? tab : tabs[0].id;
+  $('page').innerHTML = ptitle('ตั้งค่าระบบ')+`<div class="subtabs">${tabs.map(t=>`<button type="button" data-atab="${t.id}" class="${t.id===tab?'on':''}">${t.label}</button>`).join('')}</div><div id="adm"></div>`;
+  tabs.find(t=>t.id===tab).render();
+}
+async function aRules(){
+  const [d, log] = await run(Promise.all([api('rulesGet'), api('rulesLog')])) || []; if(!d) return;
+  S.rules = d;
+  const tbl = type => `<div class="tw"><table><tr><th>รหัส</th><th>หมวด</th><th>รายการ</th><th class="n">คะแนน</th><th>เสี่ยง</th><th>สถานะ</th><th></th></tr>
+    ${d.items.filter(i=>i.type===type).map(i=>`<tr style="${i.active?'':'opacity:.55'}"><td>${esc(i.item_id)}</td><td class="small">${esc(i.category)}</td><td>${esc(i.item_name)}<div class="xs muted">${esc(i.guidance)}</div></td><td class="n"><b>${type==='หัก'?'−':'+'}${i.points}</b></td><td>${i.is_severe?'<span class="pill lv3">เสี่ยง</span>':''}</td><td>${i.active?'<span class="pill lv0">ใช้งาน</span>':'<span class="pill void">ปิด</span>'}</td><td><button type="button" class="btn sm" data-edititem="${esc(i.item_id)}">แก้ไข</button></td></tr>`).join('')}</table></div>`;
+  $('adm').innerHTML = `<div class="note">การแก้เกณฑ์มีผลเฉพาะการบันทึกหลังจากนี้ คะแนนที่บันทึกไปแล้วไม่เปลี่ยน · ทุกการแก้เก็บประวัติไว้</div>
+    <div class="card"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px"><h2 style="margin:0">รายการหักคะแนน</h2><button type="button" class="btn sm" data-newitem="หัก">+ เพิ่มรายการหัก</button></div>${tbl('หัก')}</div>
+    <div class="card"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px"><h2 style="margin:0">รายการเพิ่มคะแนน</h2><button type="button" class="btn sm" data-newitem="เพิ่ม">+ เพิ่มรายการเพิ่ม</button></div>${tbl('เพิ่ม')}</div>
+    <div class="card"><h2>เกณฑ์ใบรับรองความประพฤติ</h2><div class="tw"><table id="certT"><tr><th>คะแนนตั้งแต่</th><th>ถึง</th><th>ผลรับรอง</th><th>ออกหนังสือรับรอง</th></tr>
+      ${d.certs.map(c=>`<tr><td><input type="number" data-c="min" value="${c.min==null?'':c.min}" placeholder="ไม่จำกัด" style="max-width:120px"></td><td><input type="number" data-c="max" value="${c.max==null?'':c.max}" placeholder="ไม่จำกัด" style="max-width:120px"></td><td><input data-c="label" value="${esc(c.label)}"></td><td><input type="checkbox" data-c="issue" ${c.issue?'checked':''} style="width:22px;min-height:22px"></td></tr>`).join('')}</table></div>
+      <button type="button" class="btn pri" id="certSave" style="margin-top:12px">บันทึกเกณฑ์ใบรับรอง</button></div>
+    <div class="card"><h2>ประวัติการปรับเกณฑ์</h2>${log.length?`<div class="tw" style="max-height:360px;overflow:auto"><table><tr><th>เวลา</th><th>ผู้แก้</th><th>รายการ</th><th>ค่าเดิม → ค่าใหม่</th></tr>${log.map(l=>`<tr><td class="small">${esc(l.at)}</td><td class="small">${esc(l.by)}</td><td class="small">${esc(l.table+' '+l.key+' · '+l.field)}</td><td class="small">${esc(l.old_value)} → <b>${esc(l.new_value)}</b></td></tr>`).join('')}</table></div>`:'<div class="empty">ยังไม่มีการปรับเกณฑ์</div>'}</div>`;
+  $('certSave').onclick=async()=>{
+    const rows=[...document.querySelectorAll('#certT tr')].slice(1).map(tr=>({ min:tr.querySelector('[data-c=min]').value, max:tr.querySelector('[data-c=max]').value, label:tr.querySelector('[data-c=label]').value, issue:tr.querySelector('[data-c=issue]').checked }));
+    if(await run(api('rulesSaveCert',{ rows }))){ toast('บันทึกเกณฑ์ใบรับรองแล้ว'); S.items=null; aRules(); }
+  };
+}
+function editItem(id, type){
+  const i = id ? S.rules.items.find(x=>x.item_id===id) : { type, category:'', item_name:'', points:5, guidance:'', is_severe:false, active:true };
+  const cats = [...new Set(S.rules.items.filter(x=>x.type===i.type).map(x=>x.category))];
+  modal(`<h2 style="font-size:20px">${id?'แก้ไขรายการ '+esc(id):'เพิ่มรายการ'+esc(i.type)+'คะแนน'}</h2>
+    <label class="f" style="margin-top:12px">หมวด<input id="eCat" list="eCats" value="${esc(i.category)}"><datalist id="eCats">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label>
+    <label class="f" style="margin-top:10px">ชื่อรายการ<input id="eName" value="${esc(i.item_name)}"></label>
+    <label class="f" style="margin-top:10px">คะแนนที่${esc(i.type)}<input id="ePts" type="number" min="1" max="100" value="${i.points}"></label>
+    <label class="f" style="margin-top:10px">แนวทางช่วยเหลือ/ส่งต่อ<textarea id="eGui">${esc(i.guidance)}</textarea></label>
+    <label style="display:flex;gap:10px;align-items:center;margin-top:10px"><input type="checkbox" id="eSev" ${i.is_severe?'checked':''} style="width:22px;min-height:22px"> พฤติกรรมเสี่ยง (จัดเข้ากลุ่มเสี่ยงและแนะนำให้ส่งต่อ)</label>
+    <label style="display:flex;gap:10px;align-items:center;margin-top:8px"><input type="checkbox" id="eAct" ${i.active?'checked':''} style="width:22px;min-height:22px"> เปิดใช้งาน</label>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button type="button" class="btn" data-close>ยกเลิก</button><button type="button" class="btn pri" id="eDo">บันทึก</button></div>`, true);
+  $('eDo').onclick=async()=>{ const r=await run(api('rulesSaveItem',{ item_id:id||'', type:i.type, category:$('eCat').value, item_name:$('eName').value, points:$('ePts').value, guidance:$('eGui').value, is_severe:$('eSev').checked, active:$('eAct').checked })); if(r){ closeModal(); toast('บันทึก '+r.item_id+' แล้ว'); S.items=null; aRules(); } };
+}
+async function aUsers(){
+  const list = await run(api('usersList')); if(!list) return; S.users=list;
+  $('adm').innerHTML = `<div class="card"><div class="row" style="margin-bottom:12px">
+      <label class="f" style="flex:2 1 220px">ค้นหา<input id="uQ" placeholder="ชื่อ รหัส หรืออีเมล"></label>
+      <label class="f">บทบาท<select id="uR"><option value="">ทั้งหมด</option><option value="-">ยังไม่มีบทบาท</option>${Object.entries(ROLE_TH).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+      <button type="button" class="btn" id="uSync">ซิงก์จาก Users กลาง</button><button type="button" class="btn" id="uSeed">ตั้งต้นบทบาท</button></div><div id="uT"></div></div>`;
+  const draw=()=>{ const q=$('uQ').value.trim().toLowerCase(), r=$('uR').value;
+    const f=S.users.filter(u=>(!q||(u.staff_id+' '+u.name+' '+u.email).toLowerCase().includes(q))&&(!r||(r==='-'?!u.roles.length:u.roles.includes(r))));
+    $('uT').innerHTML=`<div class="xs muted" style="margin-bottom:6px">${f.length} คน</div><div class="tw"><table><tr><th>รหัส</th><th>ชื่อ</th><th>บทบาท</th><th>ขอบเขต</th><th>สถานะ</th><th></th></tr>
+      ${f.map(u=>`<tr style="${u.active&&u.master_active?'':'opacity:.55'}"><td>${esc(u.staff_id)}</td><td>${esc(u.name)}<div class="xs muted">${esc(u.email||'ไม่มีอีเมล')} · ${esc(u.staff_type)}</div></td>
+        <td class="small">${u.roles.map(x=>esc(ROLE_TH[x]||x)).join('<br>')||'<span class="muted">-</span>'}</td><td class="small">${esc([u.grade_scope,u.room_scope].filter(Boolean).join(' · '))}</td>
+        <td class="small">${!u.master_active?'ไม่อยู่ในบุคลากรกลาง':(u.active?'ใช้งาน':'ปิด')}${u.last_login?'<div class="xs muted">เข้าล่าสุด '+esc(u.last_login)+'</div>':''}</td>
+        <td><button type="button" class="btn sm" data-edituser="${esc(u.staff_id)}">แก้ไข</button></td></tr>`).join('')}</table></div>`; };
+  $('uQ').oninput=draw; $('uR').onchange=draw; draw();
+  $('uSync').onclick=async()=>{ const r=await run(api('usersSync')); if(!r) return; modal(`<h2 style="font-size:20px">ผลการซิงก์</h2><p>เพิ่มใหม่ ${r.added} · อัปเดต ${r.updated} · ไม่อยู่ในบุคลากรกลางแล้ว ${r.deactivated}</p>
+      ${r.conflicts.length?`<div class="note">ข้อมูลประเภทบุคลากรไม่ตรงกันระหว่าง Staff_Master กับ Users_HR ${r.conflicts.length} คน (ระบบใช้ Staff_Master):<br>${r.conflicts.map(c=>esc(c.staff_id+' '+c.name+' — master: '+c.master_type+' / HR: '+c.hr_type+' '+(c.hr_role||''))).join('<br>')}</div>`:''}
+      <div style="text-align:right;margin-top:12px"><button type="button" class="btn pri" data-close>ตกลง</button></div>`, true); aUsers(); };
+  $('uSeed').onclick=async()=>{ const r=await run(api('usersSeedRoles',{})); if(!r) return; modal(`<h2 style="font-size:20px">ตั้งต้นบทบาท</h2><p>กำหนดบทบาทให้ ${r.updated} คน (เฉพาะคนที่ยังไม่มีบทบาท)</p>${r.unmatched.length?`<div class="note">อีเมลจาก E-Attendance ที่ไม่พบในรายชื่อ: ${r.unmatched.map(esc).join(', ')}</div>`:''}<div style="text-align:right;margin-top:12px"><button type="button" class="btn pri" data-close>ตกลง</button></div>`, true); aUsers(); };
+}
+const ROLE_TH = { executive:'ผู้บริหาร', head:'หัวหน้าระดับ', advisor:'ครูที่ปรึกษา', score_admin:'แอดมินบันทึกคะแนน', sysadmin:'ผู้ดูแลระบบ' };
+function editUser(id){
+  const u=S.users.find(x=>x.staff_id===id);
+  modal(`<h2 style="font-size:20px">${esc(u.name)}</h2><p class="muted small">${esc(u.staff_id)} · ${esc(u.email||'ไม่มีอีเมล')} · ${esc(u.staff_type)}${u.position?' · '+esc(u.position):''}</p>
+    <div style="display:flex;flex-direction:column;gap:6px;margin:12px 0">${Object.entries(ROLE_TH).map(([k,v])=>`<label style="display:flex;gap:10px;align-items:center"><input type="checkbox" data-role="${k}" ${u.roles.includes(k)?'checked':''} style="width:22px;min-height:22px"> ${v}</label>`).join('')}</div>
+    <label class="f">ระดับชั้น (หัวหน้าระดับ) เช่น ม.3<input id="eGr" value="${esc(u.grade_scope)}"></label>
+    <label class="f" style="margin-top:10px">ห้อง (ครูที่ปรึกษา) เช่น ม.3/2, ม.3/3<input id="eRm" value="${esc(u.room_scope)}"></label>
+    <label class="f" style="margin-top:10px">หมายเหตุ<input id="eNt" value="${esc(u.note)}"></label>
+    <label style="display:flex;gap:10px;align-items:center;margin-top:10px"><input type="checkbox" id="eAc" ${u.active?'checked':''} style="width:22px;min-height:22px"> เปิดใช้งานใน KJST Shield</label>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button type="button" class="btn" data-close>ยกเลิก</button><button type="button" class="btn pri" id="euDo">บันทึก</button></div>`, true);
+  $('euDo').onclick=async()=>{ const roles=[...document.querySelectorAll('[data-role]')].filter(x=>x.checked).map(x=>x.dataset.role);
+    if(await run(api('usersSave',{ staff_id:id, roles, grade_scope:$('eGr').value, room_scope:$('eRm').value, note:$('eNt').value, active:$('eAc').checked }))){ closeModal(); toast('บันทึกแล้ว'); aUsers(); } };
+}
+async function aData(){
+  const src = await run(api('attendanceSources')); if(!src) return;
+  $('adm').innerHTML = `<div class="grid">
+    <div class="card"><h2>นักเรียนจาก DMC</h2><p class="small muted">วางข้อมูลจากไฟล์ DMC ในชีต <b>DMC</b> ของไฟล์ database แล้วกดนำเข้า ประวัติคะแนนไม่หาย</p><button type="button" class="btn gold" id="dDmc">นำเข้านักเรียนจาก DMC</button></div>
+    <div class="card"><h2>ยอดคะแนนยกมา</h2><p class="small muted">ชีต <b>ยอดยกมา</b> ในไฟล์ database: คอลัมน์ A รหัสนักเรียน, B คะแนนคงเหลือ · นำเข้าคนละครั้งต่อช่วงชั้น</p><button type="button" class="btn" id="dOpen">นำเข้ายอดยกมา</button></div>
+    <div class="card"><h2>ข้อมูลเช็กชื่อ E-Attendance</h2><p class="small muted">ดึงอัตโนมัติวันละ 2 รอบ (12:30 และ 17:30) หรือกดดึงทันที</p><button type="button" class="btn pri" id="dPull">ดึงข้อมูลเช็กชื่อตอนนี้</button></div></div>
+    <div class="card"><h2>ไฟล์ E-Attendance แต่ละภาคเรียน</h2><div class="tw"><table><tr><th>ปี/ภาค</th><th>ไฟล์</th><th>ใช้งาน</th><th>ดึงล่าสุด</th></tr>
+      ${src.map(s=>{ let r={}; try{ r=JSON.parse(s.last_result||'{}'); }catch(e){} return `<tr><td>${esc(s.year+'/'+s.term)}</td><td class="small">${esc(s.label)}<div class="xs muted">${esc(s.file_id)}</div></td><td>${s.active==='TRUE'?'✓':'-'}</td><td class="small">${esc(s.last_pull||'-')}${r.rooms!=null?`<div class="xs muted">${r.rooms} ห้อง · ${r.students} คน · ${r.days} วัน · ครบถ้วน ${r.coverage}%</div>`:''}${r.error?`<div class="xs" style="color:#8E1F1F">${esc(r.error)}</div>`:''}</td></tr>`; }).join('')}</table></div>
+      <h3 style="font-size:16px;margin:16px 0 8px">เพิ่ม/แก้ไขไฟล์</h3>
+      <div class="row"><label class="f">ปีการศึกษา<input id="aY" value="${esc(S.init.year)}" maxlength="4"></label><label class="f">ภาคเรียน<select id="aT"><option>1</option><option>2</option></select></label>
+        <label class="f" style="flex:3 1 280px">ลิงก์หรือรหัสไฟล์ Google Sheet<input id="aF"></label><button type="button" class="btn pri" id="aSave">บันทึก</button></div></div>`;
+  $('aT').value = S.init.term;
+  $('dDmc').onclick=async()=>{ if(!confirm('นำเข้ารายชื่อนักเรียนจากชีต DMC แทนรายชื่อปัจจุบัน?')) return; const r=await run(api('importDMC')); if(r){ S.stu=null; toast('นำเข้า '+r.count+' คน'+(r.noAuth?' · ไม่มีเลขบัตร/วันเกิด '+r.noAuth+' คน':'')); } };
+  $('dOpen').onclick=async()=>{ if(!confirm('นำเข้ายอดคะแนนยกมาจากชีต "ยอดยกมา"?')) return; const r=await run(api('importOpening')); if(r){ S.stu=null; toast('เพิ่มยอดยกมา '+r.added+' คน'); } };
+  $('dPull').onclick=async()=>{ const r=await run(api('attendancePull')); if(r){ S.stu=null; toast(r.map(x=>x.year+'/'+x.term+': '+(x.error?'ผิดพลาด':x.students+' คน '+x.days+' วัน')).join(' · ')); aData(); } };
+  $('aSave').onclick=async()=>{ if(await run(api('attendanceSourceSave',{ year:$('aY').value, term:$('aT').value, file_id:$('aF').value }))){ toast('บันทึกแล้ว'); aData(); } };
+}
+async function aSettings(){
+  const d = await run(api('settingsGet')); if(!d) return;
+  const keys=['TERM','RISK_CRITICAL','RISK_HIGH','RISK_WATCH','ATT_MIN','ATT_NEAR','MIN_DAYS','ABSENT_WATCH','LATE_WATCH','DRESS_WATCH','YEARS','GOOGLE_CLIENT_ID'];
+  $('adm').innerHTML = `<div class="card"><h2>ค่าระบบ</h2><p class="small muted">ปีการศึกษาปัจจุบัน <b>${esc(d.values.YEAR)}</b> · นักเรียน ${fmt(d.students)} คน · ผู้ใช้ ${fmt(d.users)} คน</p>
+    <div class="grid">${keys.map(k=>`<label class="f">${esc(d.notes[k]||k)}<input data-set="${k}" value="${esc(d.values[k])}"></label>`).join('')}</div>
+    <button type="button" class="btn pri" id="stSave" style="margin-top:14px">บันทึกค่าระบบ</button></div>
+    <div class="card"><h2>ขึ้นปีการศึกษาใหม่</h2><p class="small muted">เก็บรายชื่อปีปัจจุบันลง StudentHistory ตั้งภาคเรียนเป็น 1 แล้วนำเข้า DMC และเพิ่มไฟล์ E-Attendance ของปีใหม่</p>
+      <div class="row"><label class="f">ปีการศึกษาใหม่<input id="nY" value="${Number(d.values.YEAR)+1}" maxlength="4"></label><button type="button" class="btn red" id="nyDo">เริ่มปีการศึกษาใหม่</button></div></div>`;
+  $('stSave').onclick=async()=>{ const values={}; document.querySelectorAll('[data-set]').forEach(i=>values[i.dataset.set]=i.value); const r=await run(api('settingsSave',{ values })); if(r){ toast(r.changed.length?'บันทึกแล้ว: '+r.changed.join(', '):'ไม่มีค่าที่เปลี่ยน'); S.stu=null; } };
+  $('nyDo').onclick=async()=>{ if(!confirm('เริ่มปีการศึกษา '+$('nY').value+'?')) return; const r=await run(api('newYear',{ year:$('nY').value })); if(r){ alert(r.msg); enter(); } };
+}
+
+/* ===== EVENTS ===== */
+document.addEventListener('click', e=>{
+  const t=e.target;
+  const lt=t.closest('[data-ltab]'); if(lt){ document.querySelectorAll('[data-ltab]').forEach(b=>b.classList.toggle('on',b===lt)); $('fStaff').hidden=lt.dataset.ltab!=='staff'; $('fStudent').hidden=lt.dataset.ltab!=='student'; lmsg(''); if(lt.dataset.ltab==='staff') GIS.render(); return; }
+  const nb=t.closest('#nav [data-page]'); if(nb) return go(nb.dataset.page);
+  const at=t.closest('[data-atab]'); if(at) return pAdmin(at.dataset.atab);
+  if(t.closest('[data-close]') || t.id==='modal') return closeModal();
+  const sr=t.closest('[data-sid]'); if(sr && !t.closest('button')) return openStudent(sr.dataset.sid);
+  const v=t.closest('[data-void]'); if(v) return voidScore(v.dataset.void);
+  const c=t.closest('[data-care]'); if(c) return careUpdate(c.dataset.care);
+  const ei=t.closest('[data-edititem]'); if(ei) return editItem(ei.dataset.edititem);
+  const ni=t.closest('[data-newitem]'); if(ni) return editItem('', ni.dataset.newitem);
+  const eu=t.closest('[data-edituser]'); if(eu) return editUser(eu.dataset.edituser);
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('modal').hidden) closeModal(); });
+$('bPass').onclick=()=>loginWith('loginPassword',{ username:$('lUser').value.trim(), password:$('lPass').value });
+$('lPass').onkeydown=e=>{ if(e.key==='Enter') $('bPass').click(); };
+$('lUser').onkeydown=e=>{ if(e.key==='Enter') $('lPass').focus(); };
+$('bStudent').onclick=()=>{
+  const nid=$('lNid').value.replace(/\D/g,''), d=$('lDay').value.trim(), m=$('lMonth').value, y=$('lYear').value.trim();
+  if(nid.length!==13) return lmsg('กรุณากรอกเลขประจำตัวประชาชน 13 หลัก');
+  if(!d||!m||!/^25\d\d$/.test(y)) return lmsg('กรุณากรอกวันเดือนปีเกิดให้ครบ (ปี พ.ศ. เช่น 2556)');
+  loginWith('loginStudent',{ nid, dob: d+'/'+m+'/'+y });
+};
+$('bLogout').onclick=logout; $('bStuOut').onclick=logout;
+$('lMonth').innerHTML = '<option value="">เดือน</option>'+MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
+
+/* ===== BOOT ===== */
+(async function boot(){
+  if(/ใส่_/.test(CONFIG.API_URL)){ showLogin('ผู้ดูแลระบบยังไม่ได้ตั้งค่า API_URL ใน app/index.html'); $('lstatus').textContent='เวอร์ชัน '+PAGE_VERSION; return; }
+  api('ping').then(p=>{ $('lterm').textContent='ปีการศึกษา '+p.year+' · ภาคเรียนที่ '+p.term; $('lstatus').textContent='เชื่อมต่อระบบแล้ว · KJST Shield '+p.version; if(p.clientId) CONFIG.CLIENT_ID=p.clientId; })
+    .catch(e=>{ $('lstatus').textContent=e.message; });
+  S.session = ls.get(SKEY);
+  if(!S.session) return showLogin('');
+  busy(true);
+  try{ await enter(); }catch(e){ if(e.code==='AUTH') expired(e.message); else showLogin(e.message); }
+  finally{ busy(false); }
+})();
+</script>
+</body>
+</html>
