@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>รายงานการออกแบบระบบ KJST Shield v2</title>
+<link rel="icon" href="../assets/kjst-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#12245A; --navy-2:#1B3170; --navy-3:#0E1D4A; --gold:#C9A227; --gold-2:#E3C45E;
+  --cream:#FBF8F1; --paper:#FFFFFF; --line:#E8E1CF; --line-2:#F1ECDF;
+  --ink:#1F2430; --muted:#6B6657; --soft:#8A8577;
+  --watch:#C9A227; --risk:#B4532A; --crit:#8E1F1F; --ok:#1B3170;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:'Sarabun',system-ui,sans-serif;font-size:16px;line-height:1.7}
+h1,h2,h3,h4{font-family:'Prompt',sans-serif;color:var(--navy);font-weight:500;line-height:1.35}
+a{color:var(--navy-2)}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;background:#F3EEE2;padding:1px 6px;border-radius:5px}
+.top{background:var(--navy);border-bottom:4px solid var(--gold);color:#fff}
+.top .in{max-width:1180px;margin:0 auto;padding:28px 24px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.logo{width:64px;height:80px;background:#FFFDF6;border-radius:12px;padding:6px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.logo img{height:100%;width:auto}
+.top h1{color:#fff;margin:0;font-size:28px}
+.top .k{font-family:'Prompt';letter-spacing:3px;color:var(--gold-2);font-size:13px}
+.top .meta{color:#B9C3DD;font-size:14px}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 24px 80px;display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+nav.toc{flex:1 1 220px;max-width:260px;position:sticky;top:16px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px}
+nav.toc b{font-family:'Prompt';color:var(--navy);font-weight:500}
+nav.toc a{display:block;padding:5px 8px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:15px}
+nav.toc a:hover{background:#F3EEE2}
+main{flex:999 1 640px;min-width:0}
+section{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px 28px;margin-bottom:22px}
+section>h2{margin:0 0 6px;font-size:24px;display:flex;gap:12px;align-items:center}
+section>h2 .n{display:inline-flex;width:34px;height:34px;border-radius:10px;background:var(--navy);color:var(--gold-2);align-items:center;justify-content:center;font-size:16px;flex:0 0 auto}
+section h3{font-size:18px;margin:22px 0 8px}
+.lead{color:var(--muted);margin:0 0 14px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.stat{background:#FCFAF4;border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.stat .l{font-size:14px;color:var(--muted)}
+.stat .v{font-family:'Prompt';font-size:30px;color:var(--navy);font-weight:500;line-height:1.3}
+.stat .s{font-size:13px;color:var(--soft)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line-2);text-align:left;vertical-align:top}
+th{background:#F7F3E8;color:var(--navy);font-weight:600;font-size:14px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.tw table th:first-child,.tw table td:first-child{padding-left:14px}
+.y{color:#1B3170;font-weight:700}.no{color:#B8B2A2}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.p-ok{background:#E7ECF7;color:#12245A}.p-watch{background:#FBF0CF;color:#6B5309}.p-risk{background:#F7E6DA;color:#7E3A1C}.p-crit{background:#F6E3E1;color:#7A1A1A}
+.p-gold{background:#FBF0CF;color:#5A4708}.p-done{background:#E7ECF7;color:#12245A}.p-todo{background:#F3EEE2;color:#6B6657}
+.note{background:#FFF8E6;border:1px solid #EAD9A6;border-radius:12px;padding:12px 16px;color:#5A4708;font-size:15px;margin:12px 0}
+.box{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#FCFAF4}
+ul.c{margin:6px 0;padding-left:22px}
+/* diagrams */
+.flow{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+.node{flex:1 1 150px;border-radius:12px;padding:12px 14px;border:1px solid var(--line);background:#fff;text-align:center}
+.node b{display:block;font-family:'Prompt';font-weight:500;color:var(--navy)}
+.node span{font-size:13px;color:var(--muted)}
+.node.navy{background:var(--navy);border-color:var(--navy)}.node.navy b{color:#fff}.node.navy span{color:#B9C3DD}
+.node.gold{background:#FBF0CF;border-color:#EAD9A6}
+.arrow{flex:0 0 auto;display:flex;align-items:center;color:var(--gold);font-size:22px;font-weight:700}
+.tier{display:flex;flex-direction:column;gap:10px}
+.tier .row{display:flex;flex-wrap:wrap;gap:10px}
+.down{text-align:center;color:var(--gold);font-size:20px;line-height:1}
+/* swatches */
+.sw{display:flex;flex-wrap:wrap;gap:12px}
+.sw div{flex:1 1 130px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.sw i{display:block;height:64px}
+.sw p{margin:0;padding:8px 10px;font-size:13px}
+.sw p b{display:block;font-size:14px}
+/* mockups */
+.mocks{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.mock{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--cream);box-shadow:0 8px 24px rgba(18,36,90,.08)}
+.cap{font-size:13px;color:var(--muted);margin-top:6px;text-align:center}
+.m-login{width:560px;max-width:100%;display:flex;min-height:300px}
+.m-login .l{flex:1 1 50%;background:var(--navy);border-right:3px solid var(--gold);padding:20px;color:#fff;display:flex;flex-direction:column;justify-content:space-between}
+.m-login .r{flex:1 1 50%;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;width:100%}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:3px;background:#F3EEE2;border-radius:8px;padding:3px;margin:8px 0 10px;font-size:12px;text-align:center}
+.tabs span{padding:5px;border-radius:6px}.tabs .on{background:#fff;color:var(--navy);font-weight:700}
+.fld{height:26px;border:1px solid #D6CDB5;border-radius:7px;background:#FFFDF8;margin:6px 0;font-size:11px;color:var(--soft);padding:4px 8px}
+.btn{height:28px;border-radius:7px;background:var(--navy);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:8px}
+.btn.g{background:#fff;color:var(--ink);border:1px solid #D6CDB5}
+.btn.au{background:var(--gold);color:#1F1A08}
+.m-dash{width:620px;max-width:100%}
+.m-dash .h{background:var(--navy);border-bottom:3px solid var(--gold);padding:10px 14px;display:flex;align-items:center;gap:8px;color:#fff;font-size:13px}
+.m-dash .nv{background:var(--navy-3);display:flex;gap:2px;padding:0 8px;font-size:11px;color:#D3DAEC}
+.m-dash .nv span{padding:6px 8px}.m-dash .nv .on{background:var(--gold-2);color:var(--navy);font-weight:700;border-radius:6px 6px 0 0;margin-top:3px}
+.m-dash .b{padding:12px;display:flex;flex-direction:column;gap:8px}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.kp div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:10px;color:var(--muted)}
+.kp b{display:block;font-family:'Prompt';font-size:17px;color:var(--navy);font-weight:500}
+.bars div{display:flex;height:9px;border-radius:4px;overflow:hidden;margin:5px 0;background:#F3EEE2}
+.m-mob{width:220px}
+.m-mob .h{background:var(--navy);border-bottom:3px solid var(--gold);color:#fff;padding:10px;font-size:12px}
+.m-mob .b{padding:10px;display:flex;flex-direction:column;gap:7px;font-size:11px}
+.chk{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line-2);padding:4px 0}
+.chk i{width:12px;height:12px;border-radius:3px;border:1px solid #B9B09A;display:inline-block}
+.chk i.y{background:var(--navy);border-color:var(--navy)}
+footer{text-align:center;color:var(--soft);font-size:13px;padding:20px}
+@media (max-width:760px){nav.toc{position:static;max-width:none}section{padding:18px}}
+@media print{nav.toc{display:none}section{break-inside:avoid}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="in">
+  <div class="logo"><img src="../assets/kjst-logo.png" alt="ตราโรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี"></div>
+  <div style="flex:1 1 400px">
+    <div class="k">KJST SHIELD v2 · DESIGN REPORT</div>
+    <h1>รายงานการวิเคราะห์และออกแบบระบบดูแลช่วยเหลือนักเรียน</h1>
+    <div class="meta">โรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี · กลุ่มบริหารงานกิจการนักเรียน ร่วมกับ กลุ่มบริหารงานวิชาการ · ฉบับวันที่ 18 พฤศจิกายน 2569</div>
+  </div>
+</div></header>
+
+<div class="wrap">
+<nav class="toc" aria-label="สารบัญ">
+  <b>สารบัญ</b>
+  <a href="#s1">1. ภาพรวมและเป้าหมาย</a>
+  <a href="#s2">2. ผลวิเคราะห์ระบบเดิม (v17)</a>
+  <a href="#s3">3. สถาปัตยกรรมระบบใหม่</a>
+  <a href="#s4">4. ธีมและหน้าจอ</a>
+  <a href="#s5">5. บทบาทและสิทธิ์</a>
+  <a href="#s6">6. การเข้าสู่ระบบ</a>
+  <a href="#s7">7. โครงสร้างฐานข้อมูล</a>
+  <a href="#s8">8. เกณฑ์คะแนนความประพฤติ</a>
+  <a href="#s9">9. การเชื่อมข้อมูลกับระบบอื่น</a>
+  <a href="#s10">10. รายการ API</a>
+  <a href="#s11">11. แผนการพัฒนา</a>
+  <a href="#s12">12. ขั้นตอนติดตั้ง</a>
+</nav>
+
+<main>
+
+<!-- 1 -->
+<section id="s1">
+  <h2><span class="n">1</span>ภาพรวมและเป้าหมาย</h2>
+  <p class="lead">พัฒนาระบบ KJST Shield ขึ้นใหม่ให้ทำงานแบบเดียวกับระบบเดิมของกลุ่มบริหารงานกิจการนักเรียน แต่เร็วขึ้น ปลอดภัยขึ้น และเชื่อมกับระบบกลางของโรงเรียน</p>
+  <div class="grid">
+    <div class="stat"><div class="l">นักเรียน</div><div class="v">1,286</div><div class="s">ม.1–ม.6 · ปีการศึกษา 2569</div></div>
+    <div class="stat"><div class="l">ห้องเรียน</div><div class="v">39</div><div class="s">ม.ต้น 21 · ม.ปลาย 18</div></div>
+    <div class="stat"><div class="l">ผู้บริหารและครู</div><div class="v">84</div><div class="s">ซิงก์จาก Staff_Master</div></div>
+    <div class="stat"><div class="l">รายการคะแนน</div><div class="v">30</div><div class="s">หัก 14 · เพิ่ม 16</div></div>
+  </div>
+  <h3>เป้าหมายหลัก</h3>
+  <ul class="c">
+    <li><b>เร็ว:</b> แดชบอร์ดอ่านข้อมูลที่สรุปไว้แล้ว ไม่คำนวณทั้งโรงเรียนใหม่ทุกครั้งที่เปิดหน้า</li>
+    <li><b>ปลอดภัยตาม PDPA:</b> ไม่เก็บรหัสผ่านหรือเลขบัตรประชาชนเป็นข้อความธรรมดา, จำกัดการเดารหัส, ทุกการแก้คะแนนมีบันทึกตรวจสอบย้อนหลัง</li>
+    <li><b>ข้อมูลแหล่งเดียว:</b> บุคลากรจาก Users กลาง, การมาเรียนจาก KJST E-Attendance, นักเรียนจาก DMC</li>
+    <li><b>ปรับเกณฑ์เองได้:</b> รายการคะแนน เกณฑ์ใบรับรอง และสิทธิ์ เก็บเป็นตารางในชีต แก้ได้จากเมนู ไม่ต้องแก้โค้ด</li>
+  </ul>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <h2><span class="n">2</span>ผลวิเคราะห์ระบบเดิม (v17)</h2>
+  <p class="lead">จาก Code.gs, Index.html และไฟล์ฐานข้อมูล KJST_SHIELD_DB.xlsx</p>
+  <div class="tw"><table>
+    <tr><th>ด้าน</th><th>ปัญหาที่พบ</th><th>แนวทางในระบบใหม่</th></tr>
+    <tr><td>ความเร็ว</td><td><code>compute_()</code> อ่านชีตเช็คชื่อทั้งปีและแปลง JSON ใหม่ทุกครั้งที่เปิดแดชบอร์ด รายชื่อนักเรียน หรือรายละเอียด</td><td>ชีตสรุป <code>AttendanceStats</code> + cache ผลคำนวณทั้งโรงเรียนพร้อมเลขเวอร์ชัน ล้างเมื่อมีการบันทึก</td></tr>
+    <tr><td>ความเร็ว</td><td>หน้าเว็บดึงรายชื่อทั้งโรงเรียนซ้ำทุกครั้งที่บันทึกคะแนน และส่ง reasons/advice ของทุกคน</td><td>ส่งข้อมูลรายการแบบย่อ รายละเอียดดึงเมื่อเปิดดูรายคน</td></tr>
+    <tr><td>ข้อมูล</td><td><code>sh_()</code> เปลี่ยนชื่อชีตเป็น <code>_old_</code> เมื่อหัวคอลัมน์ไม่ตรง ข้อมูลดูเหมือนหาย</td><td>อ่านตามชื่อหัวคอลัมน์ เพิ่มคอลัมน์ที่ขาดให้เอง ไม่เปลี่ยนชื่อชีต</td></tr>
+    <tr><td>ความปลอดภัย</td><td>รหัสผ่านครูเก็บเป็นข้อความธรรมดา มีรหัสเริ่มต้นที่เดาได้ ไม่จำกัดการล็อกอินผิด</td><td>ใช้ PBKDF2 ชุดเดียวกับ e-Score จาก Staff_Master + ล็อก 15 นาทีเมื่อผิด 5 ครั้ง</td></tr>
+    <tr><td>PDPA</td><td>เก็บเลขบัตรประชาชนนักเรียนเต็มและใช้เป็นรหัสผ่าน</td><td>เก็บเฉพาะ HMAC ของ (เลขบัตร + วันเกิด) และเลข 4 ตัวท้าย</td></tr>
+    <tr><td>การตรวจสอบ</td><td>ลบรายการคะแนนแบบถาวร ไม่มีบันทึกว่าใครลบ</td><td>ยกเลิกแทนการลบ พร้อมเหตุผล ผู้ยกเลิก และเวลา</td></tr>
+    <tr><td>สิทธิ์</td><td>role admin รวมผู้บริหารกับเจ้าหน้าที่ ทำให้ผู้บริหารลบคะแนนได้</td><td>แยก 5 บทบาท ใช้ตาราง Permissions</td></tr>
+    <tr><td>เกณฑ์</td><td>รายการคะแนนฝังในโค้ด และเกณฑ์ใบรับรองใน v17 ไม่ตรงกับของกิจการนักเรียน</td><td>ชีต ScoreItems และ CertRules ตามเกณฑ์ที่ตกลงในข้อ 8</td></tr>
+  </table></div>
+  <div class="note">ฐานข้อมูลเดิมมีนักเรียน 1,286 คน, ชีต Attendance ยังว่าง (ไม่เคยใช้เช็คชื่อใน Shield) และชีต Behavior มีเฉพาะยอดยกมา 762 แถว ประวัติคะแนนรายครั้งในชีตรายระดับเดิมไม่มีวันที่และรายการ จึงนำเข้าได้เฉพาะยอดคงเหลือ</div>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <h2><span class="n">3</span>สถาปัตยกรรมระบบใหม่</h2>
+  <p class="lead">หน้าเว็บอยู่บน GitHub Pages เรียก API ของ Google Apps Script ที่เป็นเจ้าของโดย kjst.eoffice@kjst.ac.th</p>
+  <div class="tier">
+    <div class="row">
+      <div class="node navy"><b>หน้าเว็บ (GitHub Pages)</b><span>app/index.html · HTML + JavaScript</span></div>
+      <div class="arrow">⇄</div>
+      <div class="node gold"><b>Google Sign-In</b><span>OAuth Client · บัญชี @kjst.ac.th</span></div>
+    </div>
+    <div class="down">▼ fetch POST (text/plain, ไม่มี CORS preflight)</div>
+    <div class="row">
+      <div class="node navy" style="flex-basis:100%"><b>GAS Web App API — doPost</b><span>ตรวจ token · ตรวจสิทธิ์ตามตาราง Permissions · router · cache ผลสรุป</span></div>
+    </div>
+    <div class="down">▼ SpreadsheetApp</div>
+    <div class="row">
+      <div class="node"><b>KJST Shield DB</b><span>นักเรียน · คะแนน · สถิติ · เกณฑ์</span></div>
+      <div class="node"><b>KJST E-Attendance</b><span>อ่านอย่างเดียว · ไฟล์ละภาคเรียน</span></div>
+      <div class="node"><b>Users กลาง</b><span>Staff_Master · Users_HR · อ่านอย่างเดียว</span></div>
+    </div>
+  </div>
+  <h3>หลักการทำงาน</h3>
+  <ul class="c">
+    <li>หน้าเว็บไม่เข้าถึง Google Sheet โดยตรง ทุกคำขอผ่าน GAS ซึ่งตรวจ session และสิทธิ์ก่อนเสมอ</li>
+    <li>GAS deploy แบบ <i>Execute as: Me (kjst.eoffice)</i> และ <i>Who has access: Anyone</i> ความปลอดภัยอยู่ที่การตรวจ token</li>
+    <li>ผลสรุปของนักเรียนทั้งโรงเรียน (คะแนน ระดับความเสี่ยง เวลาเรียน) เก็บใน CacheService เป็นชิ้น ๆ พร้อมเลขเวอร์ชัน การบันทึกคะแนนหรือดึงข้อมูลเช็คชื่อจะเพิ่มเลขเวอร์ชันให้คำนวณใหม่ครั้งเดียว</li>
+  </ul>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <h2><span class="n">4</span>ธีมและหน้าจอ</h2>
+  <p class="lead">น้ำเงิน · ทอง · ขาวนวล คุมโทนให้น้อยสี ใช้ได้ทั้งคอมพิวเตอร์และมือถือ</p>
+  <div class="sw">
+    <div><i style="background:#12245A"></i><p><b>น้ำเงินหลัก</b>#12245A · ส่วนหัว ปุ่มหลัก</p></div>
+    <div><i style="background:#C9A227"></i><p><b>ทอง</b>#C9A227 · เส้นคั่น ไฮไลต์</p></div>
+    <div><i style="background:#FBF8F1"></i><p><b>ขาวนวล</b>#FBF8F1 · พื้นหลังหน้า</p></div>
+    <div><i style="background:#FFFFFF"></i><p><b>ขาว</b>#FFFFFF · การ์ด</p></div>
+    <div><i style="background:linear-gradient(90deg,#1B3170 25%,#C9A227 25% 50%,#B4532A 50% 75%,#8E1F1F 75%)"></i><p><b>สีระดับความเสี่ยง</b>ปกติ · เฝ้าระวัง · เสี่ยง · วิกฤต</p></div>
+  </div>
+  <p style="margin-top:14px">ตัวอักษร: หัวข้อใช้ <b>Prompt</b> เนื้อหาใช้ <b>Sarabun</b> · ปุ่มและช่องกรอกสูงอย่างน้อย 44px · การ์ดมุมโค้ง 14px เส้นขอบบาง</p>
+  <h3>ตัวอย่างหน้าจอ</h3>
+  <div class="mocks">
+    <div>
+      <div class="mock m-login">
+        <div class="l">
+          <div style="display:flex;gap:8px;align-items:center"><span style="background:#FFFDF6;border-radius:6px;padding:3px;display:inline-flex"><img src="../assets/kjst-logo.png" alt="" style="height:30px"></span><span style="font-size:11px">โรงเรียนกาญจนาภิเษกวิทยาลัย<br>สุราษฎร์ธานี</span></div>
+          <div><div style="color:#E3C45E;font-size:10px;letter-spacing:2px">KJST SHIELD</div><div style="font-family:Prompt;font-size:18px;line-height:1.3">ระบบดูแลช่วยเหลือนักเรียน</div><div style="width:34px;height:2px;background:#C9A227;margin-top:8px"></div></div>
+          <div style="font-size:10px;color:#9AA6C6">ปีการศึกษา 2569 · ภาคเรียนที่ 2</div>
+        </div>
+        <div class="r"><div class="card">
+          <div style="font-family:Prompt;color:#12245A">เข้าสู่ระบบ</div>
+          <div class="tabs"><span class="on">ครูและบุคลากร</span><span>นักเรียน / ผู้ปกครอง</span></div>
+          <div class="btn g">เข้าสู่ระบบด้วยบัญชี @kjst.ac.th</div>
+          <div class="fld">รหัสบุคลากร</div><div class="fld">รหัสผ่าน</div>
+          <div class="btn">เข้าสู่ระบบ</div>
+        </div></div>
+      </div>
+      <div class="cap">หน้าเข้าสู่ระบบ</div>
+    </div>
+    <div>
+      <div class="mock m-dash">
+        <div class="h"><span style="background:#FFFDF6;border-radius:5px;padding:2px;display:inline-flex"><img src="../assets/kjst-logo.png" alt="" style="height:24px"></span><b style="font-family:Prompt">KJST <span style="color:#E3C45E">SHIELD</span></b><span style="margin-left:auto;background:#E3C45E;color:#12245A;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700">2569 · ภาค 2</span></div>
+        <div class="nv"><span class="on">แดชบอร์ด</span><span>นักเรียน</span><span>คะแนน</span><span>ติดตามและส่งต่อ</span><span>SHIELD</span><span>ตั้งค่า</span></div>
+        <div class="b">
+          <div style="font-family:Prompt;color:#12245A">ภาพรวมโรงเรียน</div>
+          <div class="kp"><div>นักเรียน<b>1,286</b></div><div>มาเรียนวันนี้<b>96.5%</b></div><div>คะแนนเฉลี่ย<b>91.8</b></div><div>ต้องติดตาม<b>163</b></div></div>
+          <div class="box" style="padding:8px 10px;font-size:11px">
+            <b style="color:#12245A">สถานะแยกระดับชั้น</b>
+            <div class="bars">
+              <div><i style="width:86%;background:#1B3170"></i><i style="width:9%;background:#C9A227"></i><i style="width:3%;background:#B4532A"></i><i style="width:2%;background:#8E1F1F"></i></div>
+              <div><i style="width:83%;background:#1B3170"></i><i style="width:10%;background:#C9A227"></i><i style="width:5%;background:#B4532A"></i><i style="width:2%;background:#8E1F1F"></i></div>
+              <div><i style="width:80%;background:#1B3170"></i><i style="width:12%;background:#C9A227"></i><i style="width:5%;background:#B4532A"></i><i style="width:3%;background:#8E1F1F"></i></div>
+            </div>
+          </div>
+          <div class="box" style="padding:8px 10px;font-size:11px"><b style="color:#12245A">นักเรียนที่ต้องติดตาม</b><br><span class="pill p-crit" style="font-size:10px">วิกฤต</span> นักเรียนตัวอย่าง ก. · ม.3/2 · 25 คะแนน</div>
+        </div>
+      </div>
+      <div class="cap">แดชบอร์ดบนคอมพิวเตอร์ (ข้อมูลตัวอย่าง)</div>
+    </div>
+    <div>
+      <div class="mock m-mob">
+        <div class="h"><b style="font-family:Prompt">บันทึกคะแนน</b><br><span style="color:#B9C3DD;font-size:10px">แอดมินบันทึกคะแนน</span></div>
+        <div class="b">
+          <div class="tabs" style="margin:0"><span class="on">หักคะแนน</span><span>เพิ่มคะแนน</span></div>
+          <div class="fld" style="color:#1F2430">ทะเลาะวิวาท (−30)</div>
+          <div style="background:#F6E3E1;color:#7A1A1A;border-radius:7px;padding:6px 8px;display:flex;justify-content:space-between"><span>คะแนนตามเกณฑ์</span><b>−30</b></div>
+          <div class="chk"><i class="y"></i>นักเรียน ก. <span style="margin-left:auto">85 → 55</span></div>
+          <div class="chk"><i class="y"></i>นักเรียน ข. <span style="margin-left:auto;color:#8E1F1F">60 → 30</span></div>
+          <div class="chk"><i></i>นักเรียน ค. <span style="margin-left:auto">100</span></div>
+          <div class="btn">ตรวจสอบและยืนยัน</div>
+        </div>
+      </div>
+      <div class="cap">บันทึกคะแนนบนมือถือ</div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <h2><span class="n">5</span>บทบาทและสิทธิ์</h2>
+  <p class="lead">ฉบับวันที่ 18 พ.ย. 2569 · อาจปรับภายหลัง โดยแก้ที่ชีต <code>Permissions</code> ได้โดยไม่ต้องแก้โค้ด · ผู้ใช้ 1 คนมีได้หลายบทบาท</p>
+  <div class="tw"><table>
+    <tr><th>บทบาท</th><th>เห็นข้อมูล</th><th>ติดตาม เยี่ยมบ้าน ส่งต่อ</th><th>บันทึกคะแนน</th><th>ปรับเกณฑ์คะแนน</th><th>ตั้งค่าระบบ</th></tr>
+    <tr><td><b>ผู้บริหาร</b><br><code>executive</code></td><td>ทั้งโรงเรียน รวมรายบุคคล</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+    <tr><td><b>หัวหน้าระดับ</b><br><code>head</code></td><td>ทั้งชั้นของตน</td><td class="y">✓ ทั้งชั้น</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+    <tr><td><b>ครูที่ปรึกษา</b><br><code>advisor</code></td><td>ห้องของตน (ได้หลายห้อง)</td><td class="y">✓ ห้องตน</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+    <tr><td><b>แอดมินบันทึกคะแนน</b><br><code>score_admin</code></td><td>ทั้งโรงเรียน</td><td class="no">—</td><td class="y">✓</td><td class="no">—</td><td class="no">—</td></tr>
+    <tr><td><b>ผู้ดูแลระบบ</b><br><code>sysadmin</code></td><td>ทั้งโรงเรียน</td><td class="no">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+  </table></div>
+  <p>ผู้ดูแลระบบตั้งต้น: รองผู้อำนวยการกลุ่มบริหารงานกิจการนักเรียน (T003) และ นายธนพันธ์ เพ็งสวัสดิ์ (T304) · นักเรียนและผู้ปกครองดูได้เฉพาะข้อมูลของนักเรียนคนนั้น</p>
+  <h3>รหัสสิทธิ์ (action) ในชีต Permissions</h3>
+  <div class="tw"><table>
+    <tr><th>action</th><th>ความหมาย</th><th>executive</th><th>head</th><th>advisor</th><th>score_admin</th><th>sysadmin</th></tr>
+    <tr><td><code>dashboard.view</code></td><td>ดูแดชบอร์ด</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+    <tr><td><code>student.view</code></td><td>ดูข้อมูลนักเรียนรายคน</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+    <tr><td><code>student.contact</code></td><td>เห็นชื่อและเบอร์ผู้ปกครอง</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="no">—</td><td class="y">✓</td></tr>
+    <tr><td><code>care.record</code></td><td>บันทึกติดตาม/เยี่ยมบ้าน/ส่งต่อ</td><td class="no">—</td><td class="y">✓</td><td class="y">✓</td><td class="no">—</td><td class="no">—</td></tr>
+    <tr><td><code>score.record</code></td><td>บันทึกเพิ่ม/หักคะแนน</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="y">✓</td><td class="y">✓</td></tr>
+    <tr><td><code>score.void</code></td><td>ยกเลิกรายการคะแนน (ต้องใส่เหตุผล)</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="y">✓</td><td class="y">✓</td></tr>
+    <tr><td><code>rules.edit</code></td><td>ปรับรายการคะแนนและเกณฑ์ใบรับรอง</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="y">✓</td></tr>
+    <tr><td><code>users.manage</code></td><td>ซิงก์และกำหนดบทบาทผู้ใช้</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="y">✓</td></tr>
+    <tr><td><code>data.import</code></td><td>นำเข้า DMC / ดึงข้อมูลเช็คชื่อ / ยอดยกมา</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="y">✓</td></tr>
+    <tr><td><code>settings.manage</code></td><td>ปีการศึกษา ภาคเรียน เกณฑ์เฝ้าระวัง</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="y">✓</td></tr>
+    <tr><td><code>shield.edit</code></td><td>บันทึกผลตัวชี้วัด SHIELD</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="y">✓</td></tr>
+  </table></div>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <h2><span class="n">6</span>การเข้าสู่ระบบ</h2>
+  <p class="lead">3 ทาง ได้ session token แบบเดียวกัน (CacheService 6 ชั่วโมง ต่ออายุเมื่อใช้งาน)</p>
+  <h3>ก. ครูและบุคลากร — บัญชี Google @kjst.ac.th</h3>
+  <div class="flow">
+    <div class="node"><b>กดปุ่ม Google</b><span>Google Identity Services</span></div><div class="arrow">→</div>
+    <div class="node"><b>ได้ ID token</b><span>ส่งให้ GAS</span></div><div class="arrow">→</div>
+    <div class="node gold"><b>GAS ตรวจ token</b><span>aud = Client ID · hd = kjst.ac.th · email_verified · exp</span></div><div class="arrow">→</div>
+    <div class="node navy"><b>หาอีเมลใน Users_Shield</b><span>ต้องมีบทบาทและเปิดใช้งาน</span></div>
+  </div>
+  <h3>ข. ครูและบุคลากร — รหัสบุคลากร + รหัสผ่าน</h3>
+  <div class="flow">
+    <div class="node"><b>กรอก T### + รหัสผ่าน</b><span>หน้าเว็บ</span></div><div class="arrow">→</div>
+    <div class="node gold"><b>ตรวจกับ Staff_Master</b><span>PBKDF2-HMAC-SHA256 · 500 รอบ · salt เป็นข้อความ</span></div><div class="arrow">→</div>
+    <div class="node"><b>must_change_password</b><span>TRUE → ปฏิเสธ ให้เปลี่ยนที่ e-Score</span></div><div class="arrow">→</div>
+    <div class="node navy"><b>ตรวจบทบาทใน Users_Shield</b><span>ผ่าน → ออก session</span></div>
+  </div>
+  <h3>ค. นักเรียนและผู้ปกครอง</h3>
+  <div class="flow">
+    <div class="node"><b>เลขบัตร 13 หลัก + วันเกิด (พ.ศ.)</b><span>หน้าเว็บ</span></div><div class="arrow">→</div>
+    <div class="node gold"><b>HMAC-SHA256</b><span>ใช้ pepper ใน Script Properties</span></div><div class="arrow">→</div>
+    <div class="node navy"><b>เทียบ auth_hash ในชีต Students</b><span>ดูข้อมูลตนเองอย่างเดียว</span></div>
+  </div>
+  <div class="note">ทุกช่องทางล็อกชั่วคราว 15 นาทีเมื่อกรอกผิด 5 ครั้ง (นับต่อบัญชี) · ใช้ HMAC แทน PBKDF2 สำหรับนักเรียน เพราะต้องคำนวณตอนนำเข้า DMC ครั้งละ 1,286 คน ซึ่ง PBKDF2 500 รอบจะเกินเวลาประมวลผล 6 นาทีของ GAS · e-Score เป็นระบบเดียวที่เขียน hash ลง Staff_Master</div>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <h2><span class="n">7</span>โครงสร้างฐานข้อมูล</h2>
+  <p class="lead">แยก 2 ไฟล์ · ระบบอ่านทุกชีตตามชื่อหัวคอลัมน์ ถ้าคอลัมน์ขาดจะเพิ่มต่อท้ายให้เอง จัดลำดับคอลัมน์ใหม่ได้โดยไม่กระทบระบบ</p>
+  <div class="grid" style="margin-bottom:14px">
+    <div class="box"><b style="color:#12245A">KJST Shield System file</b><br><span style="font-size:14px;color:#6B6657">ข้อมูลระบบ: Config · Users_Shield · Permissions · ScoreItems · CertRules · RulesLog · AttendanceSources · ShieldKPI · AuditLog</span><br><code style="font-size:12px">1CyT1E5gRTXJdQj0TPpBnoESuea74cQQmuULRNtK2uzE</code></div>
+    <div class="box"><b style="color:#12245A">KJST Shield database</b><br><span style="font-size:14px;color:#6B6657">ข้อมูลนักเรียน: Students · DMC · BehaviorLog · AttendanceStats · AttendanceDaily · CareLogs · StudentHistory</span><br><code style="font-size:12px">1Hlx2Y0oeq4bQdvtICcNpJfJWJewzjfVdXT9yG0oOCss</code></div>
+  </div>
+  <div class="tw"><table>
+    <tr><th>ชีต</th><th>คอลัมน์</th><th>หมายเหตุ</th></tr>
+    <tr><td><code>Config</code></td><td>key, value, note</td><td>ปีการศึกษา ภาคเรียน เกณฑ์เฝ้าระวัง รหัสไฟล์ Users กลาง Client ID</td></tr>
+    <tr><td><code>Users_Shield</code></td><td><span style="color:#8A8577">ซิงก์:</span> staff_id, email, display_name, staff_type, position, department, master_active, synced_at · <span style="color:#8A6D12">ของ Shield:</span> shield_role, grade_scope, room_scope, shield_active, assigned_by, assigned_at, last_login, note</td><td>หัวคอลัมน์กลุ่มซิงก์สีเทา กลุ่มของ Shield สีทอง · shield_role ใส่ได้หลายค่าคั่นด้วยจุลภาค</td></tr>
+    <tr><td><code>Permissions</code></td><td>action, label, executive, head, advisor, score_admin, sysadmin</td><td>TRUE/FALSE ตามตารางข้อ 5</td></tr>
+    <tr><td><code>Students</code></td><td>student_id, prefix, first_name, last_name, gender, grade, room, status, parent_name, parent_phone, nid_last4, auth_hash, imported_at</td><td>student_id 5 หลัก · ไม่เก็บเลขบัตรเต็มและวันเกิด</td></tr>
+    <tr><td><code>DMC</code></td><td>ตามไฟล์ DMC</td><td>วางข้อมูลแล้วสั่งนำเข้า · ลบทิ้งได้หลังนำเข้า</td></tr>
+    <tr><td><code>ScoreItems</code></td><td>item_id, type, category, item_name, points, guidance, is_severe, active, sort_order, updated_by, updated_at</td><td>ข้อ 8</td></tr>
+    <tr><td><code>CertRules</code></td><td>min_score, max_score, label, issue_cert, sort_order</td><td>ข้อ 8</td></tr>
+    <tr><td><code>BehaviorLog</code></td><td>log_id, date, year, term, student_id, grade, room, stage, item_id, type, category, item_name, points, note, recorded_by, recorded_at, status, void_by, void_at, void_reason</td><td>เก็บชื่อรายการและคะแนน ณ วันบันทึก · ยกเลิกแทนการลบ</td></tr>
+    <tr><td><code>RulesLog</code></td><td>at, by, table, key, field, old_value, new_value</td><td>ประวัติการปรับเกณฑ์</td></tr>
+    <tr><td><code>AttendanceSources</code></td><td>year, term, file_id, label, active, last_pull, last_result</td><td>ไฟล์ E-Attendance แต่ละภาคเรียน</td></tr>
+    <tr><td><code>AttendanceStats</code></td><td>year, term, student_id, present, official, leave, late, absent, days, dress, updated_at</td><td>สรุปรายคนรายภาค (สร้างใหม่ทุกครั้งที่ดึง)</td></tr>
+    <tr><td><code>AttendanceDaily</code></td><td>date, student_id, grade, room, status, dress_items</td><td>เฉพาะวันที่ไม่ปกติ ย้อนหลัง 45 วัน</td></tr>
+    <tr><td><code>CareLogs</code></td><td>care_id, date, student_id, grade, room, kind, detail, referred_to, status, recorded_by, recorded_at</td><td>ติดตาม · เยี่ยมบ้าน · ส่งต่อ</td></tr>
+    <tr><td><code>ShieldKPI</code></td><td>year, code, component, indicator, target, actual</td><td>actual ขึ้นต้น AUTO_ = คำนวณอัตโนมัติ</td></tr>
+    <tr><td><code>StudentHistory</code></td><td>year, student_id, name, grade, room, status</td><td>เก็บรายชื่อเมื่อขึ้นปีการศึกษาใหม่</td></tr>
+    <tr><td><code>AuditLog</code></td><td>at, by, action, detail</td><td>ล็อกอิน นำเข้า ซิงก์ เปลี่ยนสิทธิ์</td></tr>
+  </table></div>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <h2><span class="n">8</span>เกณฑ์คะแนนความประพฤติ</h2>
+  <p class="lead">คะแนน = 100 − การหักทุกรายการ + คะแนนความดี (เกิน 100 ได้) · สะสมตลอดช่วงชั้น 3 ปี · เริ่ม 100 ใหม่เมื่อขึ้น ม.4</p>
+  <h3>เกณฑ์ใบรับรองความประพฤติ (CertRules)</h3>
+  <div class="tw"><table>
+    <tr><th>คะแนน</th><th>ผลรับรอง</th><th>ออกหนังสือรับรอง</th></tr>
+    <tr><td>มากกว่า 100</td><td><span class="pill p-ok">เรียบร้อยดีมาก</span></td><td class="y">✓</td></tr>
+    <tr><td>70–100</td><td><span class="pill p-ok">เรียบร้อย</span></td><td class="y">✓</td></tr>
+    <tr><td>50–69</td><td><span class="pill p-watch">พอใช้</span></td><td class="y">✓</td></tr>
+    <tr><td>30–49</td><td><span class="pill p-risk">ควรปรับปรุง</span></td><td class="y">✓</td></tr>
+    <tr><td>น้อยกว่า 30</td><td><span class="pill p-crit">ไม่ออกหนังสือรับรองความประพฤติ</span></td><td class="no">—</td></tr>
+  </table></div>
+  <h3>รายการคะแนน (ScoreItems) — ตั้งต้น</h3>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+  <div class="tw"><table>
+    <tr><th>รหัส</th><th>รายการหักคะแนน</th><th>หัก</th></tr>
+    <tr><td>D01</td><td>มาสาย</td><td>5</td></tr>
+    <tr><td>D02</td><td>แต่งกายผิดระเบียบ</td><td>5</td></tr>
+    <tr><td>D03</td><td>ทรงผมผิดระเบียบ</td><td>5</td></tr>
+    <tr><td>D04</td><td>ใช้โทรศัพท์ในเวลาเรียน</td><td>5</td></tr>
+    <tr><td>D05</td><td>ขาดเรียนโดยไม่แจ้ง</td><td>10</td></tr>
+    <tr><td>D06</td><td>หนีเรียน</td><td>10</td></tr>
+    <tr><td>D07</td><td>ออกนอกบริเวณโรงเรียน</td><td>10</td></tr>
+    <tr><td>D08</td><td>ไม่เคารพครู</td><td>10</td></tr>
+    <tr><td>D09</td><td>วาจาไม่สุภาพ</td><td>10</td></tr>
+    <tr><td>D10</td><td>ทะเลาะวิวาท <span class="pill p-crit">เสี่ยง</span></td><td>30</td></tr>
+    <tr><td>D11</td><td>การพนัน <span class="pill p-crit">เสี่ยง</span></td><td>30</td></tr>
+    <tr><td>D12</td><td>สูบบุหรี่ <span class="pill p-crit">เสี่ยง</span></td><td>30</td></tr>
+    <tr><td>D13</td><td>บุหรี่ไฟฟ้า <span class="pill p-crit">เสี่ยง</span></td><td>30</td></tr>
+    <tr><td>D14</td><td>สารเสพติด <span class="pill p-crit">เสี่ยง</span></td><td>30</td></tr>
+  </table></div>
+  <div class="tw"><table>
+    <tr><th>รหัส</th><th>รายการเพิ่มคะแนน</th><th>เพิ่ม</th></tr>
+    <tr><td>P01</td><td>จิตอาสา</td><td>5</td></tr>
+    <tr><td>P02</td><td>บำเพ็ญประโยชน์</td><td>5</td></tr>
+    <tr><td>P03</td><td>ช่วยเหลืองานโรงเรียน</td><td>5</td></tr>
+    <tr><td>P04</td><td>เก็บของได้ส่งคืน</td><td>5</td></tr>
+    <tr><td>P05</td><td>เป็นแบบอย่างที่ดี</td><td>5</td></tr>
+    <tr><td>P06</td><td>ได้รับรางวัล</td><td>10</td></tr>
+    <tr><td>P07</td><td>เป็นตัวแทนโรงเรียน</td><td>10</td></tr>
+    <tr><td>P08–P10</td><td>เกียรติบัตร / โล่รางวัล / เหรียญรางวัล ลำดับ 1–3 ระดับจังหวัด</td><td>10</td></tr>
+    <tr><td>P11–P13</td><td>เกียรติบัตร / โล่รางวัล / เหรียญรางวัล ลำดับ 1–3 ระดับประเทศ</td><td>15</td></tr>
+    <tr><td>P14–P16</td><td>เกียรติบัตร / โล่รางวัล / เหรียญรางวัล ลำดับ 1–3 ระดับนานาชาติ</td><td>20</td></tr>
+  </table></div>
+  </div>
+  <h3>เกณฑ์เฝ้าระวังนักเรียน (Config)</h3>
+  <div class="tw"><table>
+    <tr><th>เงื่อนไข</th><th>ระดับ</th><th>แนวทางช่วยเหลือที่ระบบแนะนำ</th></tr>
+    <tr><td>คะแนนน้อยกว่า 30</td><td><span class="pill p-crit">วิกฤต</span></td><td>ประชุมผู้ปกครองร่วมฝ่ายปกครอง ทำสัญญาปรับพฤติกรรม ส่งต่อครูแนะแนว</td></tr>
+    <tr><td>คะแนนน้อยกว่า 50 · มาเรียนต่ำกว่า 80% · มีพฤติกรรมเสี่ยง (is_severe)</td><td><span class="pill p-risk">เสี่ยง</span></td><td>เชิญผู้ปกครอง เยี่ยมบ้าน ส่งต่อครูแนะแนว/ฝ่ายปกครอง</td></tr>
+    <tr><td>คะแนนน้อยกว่า 60 · มาเรียน 80–85% · ขาด ≥ 3 วัน · สาย ≥ 5 ครั้ง · ผิดระเบียบแต่งกาย ≥ 3 ครั้ง</td><td><span class="pill p-watch">เฝ้าระวัง</span></td><td>ครูที่ปรึกษาพูดคุยรายบุคคล ติดตามรายสัปดาห์</td></tr>
+  </table></div>
+  <div class="note">ผู้ปรับเกณฑ์ได้คือผู้ดูแลระบบเท่านั้น ทุกการแก้บันทึกใน RulesLog และไม่มีผลย้อนหลังกับคะแนนที่บันทึกไปแล้ว · รายการที่เคยใช้แล้วปิดได้ (active = FALSE) แต่ลบไม่ได้</div>
+</section>
+
+<!-- 9 -->
+<section id="s9">
+  <h2><span class="n">9</span>การเชื่อมข้อมูลกับระบบอื่น</h2>
+  <h3>Users กลาง → Users_Shield (ผู้ดูแลระบบกดซิงก์เอง)</h3>
+  <ul class="c">
+    <li>อ่าน Staff_Master เลือกเฉพาะ staff_type = ผู้บริหาร หรือมีคำว่า "ครู" (84 คน) ตรวจประกอบกับ Users_HR (hr_role = executive) แหล่งที่ขัดกันขึ้นในรายงานผลให้ผู้ดูแลระบบตัดสิน</li>
+    <li>แก้เฉพาะคอลัมน์กลุ่มซิงก์ ไม่แตะบทบาทและห้องที่กำหนดไว้ · คนใหม่เข้ามาโดยยังไม่มีสิทธิ์ · คนที่ is_active = FALSE หรือหายไปจาก master เข้าระบบไม่ได้ แต่แถวยังอยู่</li>
+    <li>ตั้งต้นบทบาทครั้งแรก: ผู้บริหารจาก staff_type, ครูที่ปรึกษาและหัวหน้าระดับจากชีต <code>_ผู้รับแจ้งเตือน</code> ของ E-Attendance (อีเมลตรงกัน 71/73), ผู้ดูแลระบบ T003 และ T304</li>
+  </ul>
+  <h3>KJST E-Attendance → AttendanceStats / AttendanceDaily</h3>
+  <ul class="c">
+    <li>อ่านไฟล์ของแต่ละภาคเรียนตาม AttendanceSources (ภาค 2/2569: <code>1KFVE1Aenbf…</code>) ทุกชีตห้อง <code>ม.X/Y</code> แถวที่ช่อง "ที่" เป็นตัวเลข คอลัมน์ที่หัวเป็นวันที่ (เช่น "พุธ 28 ต.ค. 26") จนถึงวันนี้</li>
+    <li>สถานะ 1 = มาโรงเรียน, 2 = ไปราชการ/อื่นๆ (นับเป็นมาเรียน), 3 = ลาป่วย/ลากิจ, 4 = มาสาย, 5 = ขาดเรียน</li>
+    <li>รหัสนักเรียน 4 หลักใน E-Attendance แปลงเป็น 5 หลักให้ตรงกับ DMC</li>
+    <li>ผลตรวจแต่งกาย/ทรงผม: เตรียมรับจากชีต <code>_ตรวจระเบียบ</code> (date, room, student_id, items, recorder, at) เมื่อ E-Attendance เพิ่มฟังก์ชันนี้ · ถ้ายังไม่มี ระบบส่วนอื่นทำงานได้ตามปกติ</li>
+    <li>ดึงอัตโนมัติวันละ 2 รอบ (12:30 และ 17:30) และกดดึงเองได้จากหน้าตั้งค่า</li>
+  </ul>
+  <h3>DMC → Students</h3>
+  <ul class="c">
+    <li>ผู้ดูแลระบบวางไฟล์ DMC ในชีต <code>DMC</code> แล้วสั่งนำเข้า · ระบบคำนวณ auth_hash จากเลขบัตร + วันเกิด เก็บเลขบัตร 4 ตัวท้าย ไม่เก็บเลขเต็ม</li>
+    <li>ประวัติคะแนนผูกกับ student_id จึงไม่หายเมื่อนำเข้าใหม่</li>
+  </ul>
+</section>
+
+<!-- 10 -->
+<section id="s10">
+  <h2><span class="n">10</span>รายการ API</h2>
+  <p class="lead">POST ไปที่ URL ของ Web App · body: <code>{"action": "...", "session": "...", ...}</code> · ตอบกลับ <code>{"ok": true, "data": ...}</code> หรือ <code>{"ok": false, "error": "...", "code": "AUTH|PERM|INPUT|..."}</code></p>
+  <div class="tw"><table>
+    <tr><th>action</th><th>สิทธิ์</th><th>หน้าที่</th></tr>
+    <tr><td><code>ping</code></td><td>ทุกคน</td><td>ตรวจการเชื่อมต่อ</td></tr>
+    <tr><td><code>loginGoogle</code> / <code>loginPassword</code> / <code>loginStudent</code></td><td>ทุกคน</td><td>เข้าสู่ระบบ 3 ทาง</td></tr>
+    <tr><td><code>logout</code>, <code>init</code></td><td>มี session</td><td>ออกจากระบบ / ข้อมูลเริ่มต้น (ผู้ใช้ สิทธิ์ เมนู ห้องในขอบเขต)</td></tr>
+    <tr><td><code>dashboard</code></td><td>dashboard.view</td><td>สรุปตามขอบเขตของผู้ใช้</td></tr>
+    <tr><td><code>students</code>, <code>student</code></td><td>student.view</td><td>รายการแบบย่อ / รายละเอียดรายคน</td></tr>
+    <tr><td><code>myReport</code></td><td>นักเรียน</td><td>ข้อมูลของตนเอง</td></tr>
+    <tr><td><code>scoreItems</code>, <code>addScore</code>, <code>voidScore</code>, <code>recentScores</code></td><td>score.record / score.void</td><td>บันทึกและยกเลิกคะแนน</td></tr>
+    <tr><td><code>careList</code>, <code>careAdd</code>, <code>careUpdate</code></td><td>student.view / care.record</td><td>ติดตาม เยี่ยมบ้าน ส่งต่อ</td></tr>
+    <tr><td><code>rulesGet</code>, <code>rulesSaveItem</code>, <code>rulesSaveCert</code>, <code>rulesLog</code></td><td>rules.edit</td><td>ปรับเกณฑ์</td></tr>
+    <tr><td><code>usersList</code>, <code>usersSync</code>, <code>usersSave</code>, <code>usersSeedRoles</code></td><td>users.manage</td><td>จัดการผู้ใช้และบทบาท</td></tr>
+    <tr><td><code>importDMC</code>, <code>importOpening</code>, <code>attendancePull</code>, <code>attendanceSources</code>, <code>attendanceSourceSave</code></td><td>data.import</td><td>นำเข้าข้อมูล</td></tr>
+    <tr><td><code>settingsGet</code>, <code>settingsSave</code>, <code>newYear</code></td><td>settings.manage</td><td>ตั้งค่าระบบ</td></tr>
+    <tr><td><code>shield</code>, <code>shieldSave</code></td><td>dashboard.view / shield.edit</td><td>ตัวชี้วัด KJST SHIELD</td></tr>
+  </table></div>
+</section>
+
+<!-- 11 -->
+<section id="s11">
+  <h2><span class="n">11</span>แผนการพัฒนา</h2>
+  <div class="tw"><table>
+    <tr><th>ระยะ</th><th>ขอบเขต</th><th>สถานะ</th></tr>
+    <tr><td>1</td><td>ฐานข้อมูล · เข้าสู่ระบบ 3 ทาง · Users_Shield · Permissions</td><td><span class="pill p-gold">เขียนโค้ดแล้ว รอทดสอบ</span></td></tr>
+    <tr><td>2</td><td>นำเข้า DMC · ดึง E-Attendance · AttendanceStats</td><td><span class="pill p-gold">เขียนโค้ดแล้ว รอทดสอบ</span></td></tr>
+    <tr><td>3</td><td>บันทึก/ยกเลิกคะแนน · audit · ScoreItems · CertRules · ยอดยกมา</td><td><span class="pill p-gold">เขียนโค้ดแล้ว รอทดสอบ</span></td></tr>
+    <tr><td>4</td><td>แดชบอร์ดตามบทบาท · ติดตาม เยี่ยมบ้าน ส่งต่อ</td><td><span class="pill p-gold">เขียนโค้ดแล้ว รอทดสอบ</span></td></tr>
+    <tr><td>5</td><td>หน้านักเรียนและผู้ปกครอง</td><td><span class="pill p-gold">เขียนโค้ดแล้ว รอทดสอบ</span></td></tr>
+    <tr><td>6</td><td>KJST SHIELD / PDCA · ข้อมูลย้อนหลังรายปี</td><td><span class="pill p-todo">ฉบับพื้นฐาน</span></td></tr>
+  </table></div>
+  <h3>ยังรอข้อมูล</h3>
+  <ul class="c">
+    <li>ไฟล์คะแนนล่าสุดของกิจการนักเรียน สำหรับนำเข้ายอดยกมา (ชีต <code>ยอดยกมา</code>: รหัสนักเรียน, คะแนนคงเหลือ)</li>
+    <li>ฟังก์ชันบันทึกผลตรวจแต่งกาย/ทรงผมใน E-Attendance</li>
+    <li>คอลัมน์ <code>must_change_password</code> ใน Staff_Master</li>
+  </ul>
+</section>
+
+<!-- 12 -->
+<section id="s12">
+  <h2><span class="n">12</span>ขั้นตอนติดตั้ง</h2>
+  <ol class="c">
+    <li>ใช้บัญชี kjst.eoffice@kjst.ac.th สร้างโปรเจกต์ Apps Script แบบ standalone (ไฟล์ System file และ database สร้างไว้แล้ว ระบบเปิดด้วยรหัสไฟล์ที่ตั้งไว้ใน <code>Config.gs</code>)</li>
+    <li>คัดลอกไฟล์ทั้งหมดในโฟลเดอร์ <code>gas/</code> ของ repo นี้ (หรือใช้ <code>clasp push</code> โดยตั้ง <code>rootDir</code> เป็น <code>gas</code>)</li>
+    <li>รันฟังก์ชัน <code>setup</code> หนึ่งครั้งและอนุญาตสิทธิ์ ระบบจะสร้างทุกชีตในทั้ง 2 ไฟล์ ตั้งเกณฑ์ตั้งต้น และสร้าง pepper ใน Script Properties</li>
+    <li>ใส่ Client ID ของ Google ใน Config (<code>GOOGLE_CLIENT_ID</code>) — ใช้ Client ID เดียวกับ E-Attendance ได้ถ้าหน้าเว็บอยู่โดเมน panth427-kjst.github.io เดียวกัน</li>
+    <li>รัน <code>syncUsers</code> และ <code>seedRoles</code> · วาง DMC ในชีต DMC แล้วรัน <code>importDMC</code> · รัน <code>pullAttendance</code> · รัน <code>installTriggers</code></li>
+    <li>Deploy › New deployment › Web app · Execute as: Me · Who has access: Anyone แล้วนำ URL ไปใส่ใน <code>app/index.html</code> (CONFIG.API_URL)</li>
+    <li>รัน <code>testSystem</code> ดูผลใน Execution log</li>
+  </ol>
+</section>
+
+</main>
+</div>
+<footer>KJST Shield v2 · โรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี · รายงานการออกแบบ ฉบับ 18 พ.ย. 2569</footer>
+</body>
+</html>
