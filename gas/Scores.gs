@@ -100,11 +100,18 @@ function rulesSaveItem_(u, p) {
     dirty_('ScoreItems');
     var all = rows_('ScoreItems'), cur = p.item_id ? all.filter(function (r) { return r.item_id === p.item_id; })[0] : null;
     if (p.item_id && !cur) throw err_('NOTFOUND', 'ไม่พบรายการ ' + p.item_id);
+    if (p.item_id && all.filter(function (r) { return r.item_id === p.item_id; }).length > 1) throw err_('INPUT', 'รหัส ' + p.item_id + ' ซ้ำกันในชีต ScoreItems กรุณาแจ้งผู้ดูแลระบบ');
     if (cur && cur.type !== type) throw err_('INPUT', 'เปลี่ยนประเภทหัก/เพิ่มของรายการเดิมไม่ได้ ให้ปิดรายการเดิมแล้วสร้างรายการใหม่');
     var id = cur ? cur.item_id : (function () {
-      var pre = type === 'หัก' ? 'D' : 'P', max = 0;
-      all.forEach(function (r) { if (r.item_id.charAt(0) === pre) max = Math.max(max, Number(r.item_id.slice(1)) || 0); });
-      return pre + ('0' + (max + 1)).slice(-2);
+      // รหัสใหม่ = เลขสูงสุด + 1 (อย่างน้อย 2 หลัก ไม่จำกัดจำนวน: D99 → D100 → D101 ...)
+      var pre = type === 'หัก' ? 'D' : 'P', max = 0, used = {};
+      all.forEach(function (r) {
+        used[r.item_id] = 1;
+        if (r.item_id.charAt(0) === pre && /^\d+$/.test(r.item_id.slice(1))) max = Math.max(max, Number(r.item_id.slice(1)));
+      });
+      var n = max + 1, nid;
+      do { nid = pre + (n < 10 ? '0' + n : String(n)); n++; } while (used[nid]);
+      return nid;
     })();
     var o = {
       item_id: id, type: type, category: String(p.category || '').trim() || 'อื่น ๆ', item_name: name, points: String(pts),
