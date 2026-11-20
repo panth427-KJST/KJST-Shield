@@ -65,6 +65,13 @@ var ACTIONS = {
 
   dashboard:    { perm: 'dashboard.view', fn: function (u) { return dashboard_(u); } },
   myClass:      { perm: 'dashboard.view', fn: function (u, p) { return myClass_(u, p); } },
+  recAttGet:    { perm: 'records.edit', fn: function (u, p) { return recAttGet_(p); } },
+  recAttSave:   { perm: 'records.edit', fn: function (u, p) { return recAttSave_(u, p); } },
+  recDressGet:  { perm: 'records.edit', fn: function (u, p) { return recDressGet_(p); } },
+  recDressSave: { perm: 'records.edit', fn: function (u, p) { return recDressSave_(u, p); } },
+  recHairGet:   { perm: 'records.edit', fn: function (u, p) { return recHairGet_(p); } },
+  recHairSave:  { perm: 'records.edit', fn: function (u, p) { return recHairSave_(u, p); } },
+  recLog:       { perm: 'records.edit', fn: function (u, p) { return recLog_(p); } },
   history:      { perm: 'dashboard.view', fn: function () { return history_(); } },
   students:     { perm: 'student.view', fn: function (u) { return studentsList_(u); } },
   student:      { perm: 'student.view', fn: function (u, p) {

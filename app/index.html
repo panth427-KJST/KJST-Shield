@@ -81,6 +81,18 @@ nav.menu .in{max-width:1280px;margin:0 auto;padding:0 12px;display:flex;gap:2px;
 nav.menu button{flex:0 0 auto;background:transparent;border:0;color:#D3DAEC;padding:12px 16px;margin-top:6px;border-radius:8px 8px 0 0;cursor:pointer;font-size:15px}
 nav.menu button.on{background:var(--gold2);color:var(--navy);font-weight:700}
 main{max-width:1280px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-direction:column;gap:18px}
+.mc-tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line);margin-top:14px}
+.mc-tabs button{min-height:46px;padding:0 18px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font-size:16px;font-weight:500;margin-bottom:-2px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.mc-tabs button.on{border-bottom-color:var(--gold);color:var(--navy);font-weight:600}
+.rc-kinds{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--fline);background:#fff;color:#4A4636;font-size:14px;cursor:pointer}
+.chip.on{background:var(--navy);border:2px solid var(--navy);color:#fff;font-weight:600}
+.chip.new{background:var(--gold);border:2px solid var(--gold);color:#1F1A08;font-weight:700}
+tr.rc-ch td{background:#FFF6DA}tr.rc-has td{background:#FBF8F1}
+.rc-bar{position:sticky;bottom:12px;margin-top:14px;background:#fff;border:2px solid var(--line);border-radius:14px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;box-shadow:0 6px 20px rgba(18,36,90,.10);z-index:5}
+.rc-bar.on{border-color:var(--gold)}
+.info-note{background:#EEF2FA;border:1px solid #C9D3EA;border-radius:12px;padding:10px 14px;font-size:14px;color:#1B3170}
 .mc-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;background:linear-gradient(135deg,#12245A,#1B3170);color:#fff;border-radius:16px;padding:18px 22px;border-bottom:4px solid var(--gold)}
 .mc-head h1{color:#fff}.mc-head .muted{color:#D8DDEB!important}
 .mc-actions{display:flex;flex-wrap:wrap;gap:10px}
@@ -385,9 +397,23 @@ function attTodayCard(rows){
 
 /* ----- ชั้นเรียนของฉัน ----- */
 function addDay(iso,n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function mcHeadHtml(attUrl, room, date){
+  const link = (extra) => { if(!attUrl) return ''; const q=new URLSearchParams(); if(room) q.set('cls',room); if(date) q.set('date',date); if(extra) q.set('mode',extra); return attUrl+(attUrl.includes('?')?'&':'?')+q.toString(); };
+  const btns = attUrl ? `<div class="mc-actions">
+      <a class="btn pri mc-big" href="${esc(link(''))}" target="_blank" rel="noopener"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>บันทึกการมาเรียน</a>
+      <a class="btn gold mc-big" href="${esc(link('dress'))}" target="_blank" rel="noopener"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 3l3 3 3-3 5 3-2 5h-2v10H8V11H6L4 6z"/></svg>ตรวจระเบียบการแต่งกาย</a>
+    </div>` : '';
+  return `<div class="mc-head"><div><h1 style="font-size:25px">ชั้นเรียนของฉัน</h1><div class="muted small">ข้อมูลเฉพาะระดับชั้น/ห้องเรียนที่ดูแล</div></div>${btns}</div>`;
+}
+function mcTabsHtml(cur){
+  if(!can('records.edit')) return '';
+  return `<div class="mc-tabs" role="tablist"><button type="button" role="tab" data-mctab="view" class="${cur==='view'?'on':''}">ภาพรวมชั้นเรียน</button>
+    <button type="button" role="tab" data-mctab="edit" class="${cur==='edit'?'on':''}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>แก้ไขข้อมูลย้อนหลัง <span class="pill lv1" style="font-size:12px">เฉพาะแอดมิน</span></button></div>`;
+}
 async function pMyClass(cls, date){
+  if(S.mcTab==='edit' && can('records.edit')) return pMcEdit();
   const d = await run(api('myClass',{ cls: cls||S.mcCls||'', date: date||S.mcDate||'' })); if(!d) return;
-  S.mcCls=d.sel; S.mcDate=d.date;
+  S.mcCls=d.sel; S.mcDate=d.date; S.attUrl=d.attUrl;
   const room = /\//.test(d.sel) ? d.sel : '';
   const link = (extra) => { if(!d.attUrl) return ''; const q=new URLSearchParams(); if(room) q.set('cls',room); q.set('date',d.date); if(extra) q.set('mode',extra); return d.attUrl+(d.attUrl.includes('?')?'&':'?')+q.toString(); };
   const btns = d.attUrl ? `<div class="mc-actions">
@@ -409,6 +435,7 @@ async function pMyClass(cls, date){
       <div><h1 style="font-size:25px">ชั้นเรียนของฉัน</h1><div class="muted small">ข้อมูลเฉพาะระดับชั้น/ห้องเรียนที่ดูแล${d.attUpdated?' · ดึงข้อมูลเช็กชื่อล่าสุด '+esc(d.attUpdated):''}</div></div>
       ${btns}
     </div>
+    ${mcTabsHtml('view')}
     <div class="card" style="margin-top:14px"><div class="row" style="align-items:flex-end">
       <label class="f" style="flex:1 1 200px">ชั้นเรียน<select id="mcCls">${opt}</select></label>
       <label class="f" style="flex:1 1 200px">วันที่<input type="date" id="mcDate" value="${d.date}" max="${d.today}"></label>
@@ -463,6 +490,141 @@ async function pMyClass(cls, date){
   $('mcNext').onclick=()=>pMyClass(S.mcCls, addDay(d.date,1));
   $('mcToday').onclick=()=>pMyClass(S.mcCls, d.today);
   if($('mcPull')) $('mcPull').onclick=async()=>{ $('mcPull').disabled=true; $('mcPull').textContent='กำลังดึงข้อมูล… (ประมาณ 1 นาที)'; if(await run(api('attendancePull'))){ toast('ดึงข้อมูลเช็กชื่อแล้ว'); pMyClass(S.mcCls, S.mcDate); } else { $('mcPull').disabled=false; $('mcPull').textContent='ดึงข้อมูลเช็กชื่อตอนนี้'; } };
+}
+/* ----- ชั้นเรียนของฉัน › แก้ไขข้อมูลย้อนหลัง (แอดมิน) ----- */
+const RC = { kind:'att', cls:'', date:'', round:'', d:null, ch:{}, reason:'' };
+const ATT_ORDER = [['1','มา'],['4','สาย'],['3','ลา'],['5','ขาด'],['2','ราชการ']];
+const ATT_NAME = {'1':'มา','2':'ราชการ','3':'ลา','4':'สาย','5':'ขาด'};
+async function pMcEdit(){
+  const k=RC.kind;
+  const head = mcHeadHtml(S.attUrl||'', /\//.test(RC.cls)?RC.cls:'', RC.date) + mcTabsHtml('edit');
+  const ktabs = `<div class="rc-kinds">${[['att','การมาเรียน'],['dress','การแต่งกาย'],['hair','ทรงผม'],['log','ประวัติการแก้ไข']].map(([v,l])=>`<button type="button" data-rckind="${v}" class="btn ${k===v?'pri':''}">${l}</button>`).join('')}</div>`;
+  if(k==='log') return rcLog(head+ktabs);
+  const act = {att:'recAttGet',dress:'recDressGet',hair:'recHairGet'}[k];
+  const d = await run(api(act,{ cls:RC.cls, date:RC.date, round_id:RC.round })); if(!d) return;
+  RC.d=d; RC.ch={}; RC.cls=d.cls||RC.cls; RC.date=d.date||''; if(d.round_id) RC.round=d.round_id;
+  if(!RC.cls && d.classes) RC.cls=d.classes[0];
+  let filt='';
+  if(k==='hair'){
+    if(!d.rounds.length){ $('page').innerHTML = head+ktabs+'<div class="card"><div class="empty">ยังไม่มีรอบตรวจทรงผมในไฟล์ e-Attendance ภาคเรียนนี้</div></div>'; return; }
+    filt = `<div class="row" style="align-items:flex-end">
+      <label class="f" style="flex:2 1 260px">รอบตรวจ<select id="rcRound">${d.rounds.map(r=>`<option value="${esc(r.round_id)}"${r.round_id===d.round_id?' selected':''}>${esc(r.title||r.round_id)} (${esc(r.round_id)})${r.status==='closed'?' · ปิดแล้ว':''}</option>`).join('')}</select></label>
+      <label class="f" style="flex:1 1 140px">ห้องเรียน<select id="rcCls">${d.classes.map(c=>`<option${c===d.cls?' selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px"><span class="small muted">วันตรวจ</span>${d.dates.map((x,i)=>x>d.today?`<button type="button" class="btn sm" disabled title="ยังไม่ถึง">วันที่ ${i+1} · ${thDate(x)}</button>`:`<button type="button" class="btn sm ${x===d.date?'pri':''}" data-rcdate="${x}">วันที่ ${i+1} · ${thDate(x)}</button>`).join('')}</div>
+      <div class="info-note" style="margin-top:12px"><b>การคัดลอกอัตโนมัติ:</b> ถ้าแก้เป็น <b>ผ่าน</b> และวันตรวจถัดไปยัง<b>ว่าง</b> (และถึงวันนั้นแล้ว) ระบบจะคัดลอก "ผ่าน" ให้ต่อไปจนกว่าจะเจอวันที่มีผลอยู่แล้ว · ถ้าวันถัดไปมีผลแล้ว จะแก้เฉพาะวันนี้</div>`;
+  } else {
+    filt = `<div class="row" style="align-items:flex-end">
+      <label class="f" style="flex:1 1 160px">ห้องเรียน<select id="rcCls">${d.classes.map(c=>`<option${c===d.cls?' selected':''}>${esc(c)}</option>`).join('')}</select></label>
+      <label class="f" style="flex:1 1 200px">วันที่<select id="rcDate">${d.dates.map(x=>`<option value="${x}"${x===d.date?' selected':''}>${thDate(x)}</option>`).join('')}</select></label>
+      <div style="display:flex;gap:6px"><button type="button" class="btn" id="rcPrev">‹ ก่อนหน้า</button><button type="button" class="btn" id="rcNext">ถัดไป ›</button></div></div>`;
+  }
+  const hint = {att:'กดสถานะเพื่อแก้ · แถวที่แก้จะเป็นสีทอง · แก้ได้เฉพาะภาคเรียนปัจจุบัน ('+d.term+'/'+d.year+')',
+    dress:'กดรายการเพื่อเพิ่มหรือเอาออก · คนที่มีบันทึกอยู่แล้วมีพื้นสีครีม · "ยกเลิกบันทึก" เปลี่ยนเป็น void (ไม่ลบแถว)',
+    hair:'เลือกผลตรวจ · "ไม่ผ่าน" ต้องระบุหมายเหตุ'}[k];
+  const thead = {att:'<th>ที่</th><th>นักเรียน</th><th>สถานะ</th><th>ค่าเดิม</th>', dress:'<th>ที่</th><th>นักเรียน</th><th>รายการที่ผิด</th><th>หมายเหตุ</th><th></th>', hair:'<th>ที่</th><th>นักเรียน</th><th>ผลตรวจ</th><th>หมายเหตุ</th><th>ผลต่อวันถัดไป</th>'}[k];
+  $('page').innerHTML = head + ktabs + `<div class="card">${filt}<div class="xs muted" style="margin:10px 0">${hint}</div>
+    ${(k==='hair'&&!d.date)?'<div class="empty">รอบนี้ยังไม่ถึงวันตรวจ</div>':`<div class="tw"><table class="rc-t"><thead><tr>${thead}</tr></thead><tbody id="rcBody">${d.students.map((s,i)=>rcRow(i)).join('')}</tbody></table></div>`}</div>
+    <div class="rc-bar" id="rcBar"><div>แก้ไขแล้ว <b id="rcN" style="font-size:20px;color:var(--navy)">0</b> รายการ</div>
+      <label class="f" style="flex:1 1 300px">เหตุผลการแก้ไข (จำเป็น)<input id="rcReason" value="${esc(RC.reason)}" placeholder="เช่น ครูกดผิด · มีใบลาย้อนหลัง"></label>
+      <button type="button" class="btn" id="rcReset">ยกเลิกการแก้</button><button type="button" class="btn pri" id="rcSave" disabled>ตรวจสอบและบันทึก</button></div>`;
+  const re=()=>{ RC.date=''; pMcEdit(); };
+  if($('rcCls')) $('rcCls').onchange=e=>{ RC.cls=e.target.value; pMcEdit(); };
+  if($('rcDate')) $('rcDate').onchange=e=>{ RC.date=e.target.value; pMcEdit(); };
+  if($('rcRound')) $('rcRound').onchange=e=>{ RC.round=e.target.value; re(); };
+  if($('rcPrev')){ const i=d.dates.indexOf(d.date); $('rcPrev').disabled=i>=d.dates.length-1; $('rcNext').disabled=i<=0;
+    $('rcPrev').onclick=()=>{ RC.date=d.dates[i+1]; pMcEdit(); }; $('rcNext').onclick=()=>{ RC.date=d.dates[i-1]; pMcEdit(); }; }
+  $('rcReason').oninput=e=>{ RC.reason=e.target.value; rcBar(); };
+  $('rcReset').onclick=()=>{ RC.ch={}; d.students.forEach((s,i)=>rcRedraw(i)); rcBar(); };
+  $('rcSave').onclick=rcConfirm;
+  if($('rcBody')){
+    $('rcBody').onclick=e=>{ const b=e.target.closest('[data-rc]'); if(!b) return; const i=+b.dataset.i, s=d.students[i], v=b.dataset.v;
+      if(k==='att'){ RC.ch[s.id]=v; if(v===s.code) delete RC.ch[s.id]; }
+      else if(k==='dress'){ const c=RC.ch[s.id]||{items:s.items.slice(),note:s.note,void:false};
+        if(b.dataset.rc==='void'){ c.void=true; } else { c.void=false; const j=c.items.indexOf(v); if(j>=0) c.items.splice(j,1); else c.items.push(v); }
+        RC.ch[s.id]=c; if(!rcDressChanged(s,c)) delete RC.ch[s.id]; }
+      else if(k==='hair'){ const c=RC.ch[s.id]||{result:s.result,note:s.note}; c.result=v; RC.ch[s.id]=c; if(c.result===s.result&&c.note===s.note) delete RC.ch[s.id]; }
+      rcRedraw(i); rcBar(); };
+    $('rcBody').oninput=e=>{ const t=e.target; if(!t.dataset.note) return; const i=+t.dataset.i, s=d.students[i];
+      if(k==='dress'){ const c=RC.ch[s.id]||{items:s.items.slice(),note:s.note,void:false}; c.note=t.value; RC.ch[s.id]=c; if(!rcDressChanged(s,c)) delete RC.ch[s.id]; }
+      if(k==='hair'){ const c=RC.ch[s.id]||{result:s.result,note:s.note}; c.note=t.value; RC.ch[s.id]=c; if(c.result===s.result&&c.note===s.note) delete RC.ch[s.id]; }
+      const tr=t.closest('tr'); tr.classList.toggle('rc-ch', !!RC.ch[s.id]); rcBar(); };
+  }
+  rcBar();
+}
+function rcDressChanged(s,c){ return c.void || c.note.trim()!==s.note || c.items.slice().sort().join('|')!==s.items.slice().sort().join('|'); }
+function rcRedraw(i){ const tr=document.querySelector('#rcBody tr[data-i="'+i+'"]'); if(tr) tr.outerHTML=rcRow(i); }
+function rcRow(i){
+  const d=RC.d, s=d.students[i], k=RC.kind, c=RC.ch[s.id];
+  const chip=(v,l,on,isNew,extra)=>`<button type="button" class="chip${on?(isNew?' new':' on'):''}" data-rc="${extra||'v'}" data-i="${i}" data-v="${esc(v)}" aria-pressed="${on}">${esc(l)}</button>`;
+  const who=`<td><b style="font-weight:500">${esc(s.name)}</b><div class="xs muted">${esc(s.id)}${s.code&&k!=='att'?' · '+ATT_NAME[s.code]:''}</div></td>`;
+  if(k==='att'){
+    const cur=c!==undefined?c:s.code;
+    return `<tr data-i="${i}" class="${c!==undefined?'rc-ch':''}"><td class="muted">${s.no}</td>${who}<td><div class="chips">${ATT_ORDER.map(([v,l])=>chip(v,l,cur===v,c!==undefined)).join('')}</div>
+      ${c!==undefined&&s.scores.length?`<div class="xs" style="color:#7E3A1C;margin-top:6px">วันนี้มีรายการคะแนน: ${s.scores.map(esc).join(', ')} — ตรวจว่าต้องยกเลิกในเมนูคะแนนหรือไม่</div>`:''}</td>
+      <td class="small muted">${s.code?ATT_NAME[s.code]:'ยังไม่ได้บันทึก'}</td></tr>`;
+  }
+  if(k==='dress'){
+    const cur=c||{items:s.items,note:s.note,void:false};
+    return `<tr data-i="${i}" class="${c?'rc-ch':(s.has?'rc-has':'')}"><td class="muted">${s.no}</td>${who}
+      <td>${cur.void?'<span class="pill void">จะยกเลิกบันทึก</span>':`<div class="chips">${d.items.map(it=>chip(it,it,cur.items.includes(it),!s.items.includes(it))).join('')}</div>`}</td>
+      <td><input data-note="1" data-i="${i}" value="${esc(cur.note)}" aria-label="หมายเหตุ" style="min-width:150px"></td>
+      <td>${s.has&&!cur.void?`<button type="button" class="btn sm" data-rc="void" data-i="${i}" data-v="" style="color:#7A1A1A">ยกเลิกบันทึก</button>`:''}</td></tr>`;
+  }
+  const cur=c||{result:s.result,note:s.note};
+  let nx='';
+  if(!d.next) nx='<span class="muted">วันสุดท้ายของรอบ</span>';
+  else if(c&&cur.result==='ผ่าน'&&!s.nextResult) nx=d.nextEditable?'<b style="color:#1E5631">จะคัดลอก "ผ่าน" ไปวันถัดไป</b>':'<span class="muted">วันถัดไปยังไม่ถึง (ระบบ Attendance จะคัดลอกให้ในวันนั้น)</span>';
+  else if(c&&s.nextResult) nx=`<b style="color:#7E3A1C">วันถัดไปมีผลแล้ว (${esc(s.nextResult)}) · แก้เฉพาะวันนี้</b>`;
+  else nx=`<span class="muted">วันถัดไป: ${esc(s.nextResult||'ว่าง')}</span>`;
+  return `<tr data-i="${i}" class="${c?'rc-ch':''}"><td class="muted">${s.no}</td>${who}
+    <td><div class="chips">${['ผ่าน','ไม่ผ่าน','ไม่อยู่'].map(v=>chip(v,v,cur.result===v,!!c)).join('')}</div><div class="xs muted" style="margin-top:4px">เดิม: ${esc(s.result||'ว่าง')}${s.source?' · '+esc(s.source):''}</div></td>
+    <td><input data-note="1" data-i="${i}" value="${esc(cur.note)}" placeholder="${cur.result==='ไม่ผ่าน'?'จำเป็น: ระบุรายละเอียด':''}" aria-label="หมายเหตุ" style="min-width:150px"></td>
+    <td class="small">${nx}</td></tr>`;
+}
+function rcBar(){ const n=Object.keys(RC.ch).length; if(!$('rcN')) return; $('rcN').textContent=n; $('rcSave').disabled=!(n&&RC.reason.trim()); $('rcBar').classList.toggle('on', n>0); }
+function rcConfirm(){
+  const d=RC.d, k=RC.kind, sm={}; d.students.forEach(s=>sm[s.id]=s);
+  const lines = Object.keys(RC.ch).map(id=>{ const s=sm[id], c=RC.ch[id];
+    if(k==='att') return `${s.name}: ${s.code?ATT_NAME[s.code]:'ว่าง'} → ${ATT_NAME[c]}`;
+    if(k==='dress') return c.void?`${s.name}: ยกเลิกบันทึก (${s.items.join(', ')})`:`${s.name}: ${s.items.join(', ')||'ไม่มีบันทึก'} → ${c.items.join(', ')||'ไม่มีบันทึก (ยกเลิก)'}${c.note.trim()!==s.note?' · หมายเหตุ: '+c.note.trim():''}`;
+    return `${s.name}: ${s.result||'ว่าง'} → ${c.result}${c.note?' ('+c.note+')':''}${c.result==='ผ่าน'&&d.nextEditable&&!s.nextResult?' · คัดลอกไปวันถัดไป':''}`; });
+  if(k==='hair'){ const bad=Object.keys(RC.ch).filter(id=>RC.ch[id].result==='ไม่ผ่าน'&&!RC.ch[id].note.trim()); if(bad.length) return toast('กรุณาระบุหมายเหตุของ '+bad.map(id=>sm[id].name).join(', '), true); }
+  const kn={att:'การมาเรียน',dress:'การแต่งกาย',hair:'ทรงผม'}[k];
+  modal(`<h2 style="font-size:20px">ยืนยันการแก้ไข${kn}</h2><p>${esc(d.cls)} · ${thDate(d.date)} · ${lines.length} รายการ</p>
+    <ul style="padding-left:20px;max-height:320px;overflow:auto">${lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>
+    <p class="small">เหตุผล: <b>${esc(RC.reason)}</b></p>
+    <p class="xs muted">ระบบจะเขียนกลับไฟล์ KJST e-Attendance ตรวจว่าไม่มีใครแก้ค่าเดิมระหว่างนี้ บันทึกประวัติลง EditLog และอัปเดตสถิติใน Shield ทันที</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-close>กลับไปแก้</button><button type="button" class="btn pri" id="rcDo">ยืนยันบันทึก</button></div>`, true);
+  $('rcDo').onclick=async()=>{
+    let changes;
+    if(k==='att') changes=Object.keys(RC.ch).map(id=>({ id, old:sm[id].code, code:RC.ch[id] }));
+    else if(k==='dress') changes=Object.keys(RC.ch).map(id=>({ id, oldItems:sm[id].items, oldNote:sm[id].note, items:RC.ch[id].items, note:RC.ch[id].note, void:RC.ch[id].void }));
+    else changes=Object.keys(RC.ch).map(id=>({ id, oldResult:sm[id].result, oldNote:sm[id].note, result:RC.ch[id].result, note:RC.ch[id].note }));
+    const act={att:'recAttSave',dress:'recDressSave',hair:'recHairSave'}[k];
+    const r=await run(api(act,{ cls:d.cls, date:d.date, round_id:RC.round, reason:RC.reason, changes }));
+    closeModal();
+    if(r){ toast('บันทึกแล้ว '+r.changed+' รายการ'+(r.copies?' · คัดลอกผลไปวันถัดไป '+r.copies+' รายการ':'')); RC.reason=''; S.stu=null; }
+    pMcEdit();
+  };
+}
+async function rcLog(top){
+  const r = await run(api('recLog',{ kind:RC.logKind||'', q:RC.logQ||'' })); if(!r) return;
+  RC.logRows=r.rows;
+  $('page').innerHTML = top + `<div class="card"><div class="row" style="align-items:flex-end">
+    <label class="f" style="flex:1 1 160px">ประเภท<select id="lgK">${['','การมาเรียน','การแต่งกาย','ทรงผม'].map(x=>`<option value="${x}"${x===(RC.logKind||'')?' selected':''}>${x||'ทั้งหมด'}</option>`).join('')}</select></label>
+    <label class="f" style="flex:2 1 240px">ค้นหา<input id="lgQ" value="${esc(RC.logQ||'')}" placeholder="ผู้แก้ ห้อง รหัส/ชื่อนักเรียน หรือเหตุผล"></label>
+    <button type="button" class="btn" id="lgGo">ค้นหา</button><button type="button" class="btn" id="lgCsv">ส่งออก CSV</button></div>
+    <div class="xs muted" style="margin:10px 0">ทั้งหมด ${fmt(r.total)} รายการ${r.total>r.rows.length?' · แสดง '+fmt(r.rows.length)+' รายการล่าสุด':''} · ประวัติเก็บในชีต EditLog ดูได้อย่างเดียว</div>
+    ${r.rows.length?`<div class="tw" style="max-height:620px;overflow:auto"><table><tr><th>เวลา</th><th>ผู้แก้ไข</th><th>ประเภท</th><th>วันที่ข้อมูล · ห้อง</th><th>นักเรียน</th><th>รายการ</th><th>ค่าเดิม → ค่าใหม่</th><th>เหตุผล</th></tr>
+      ${r.rows.map(l=>`<tr><td class="small" style="white-space:nowrap">${esc(l.at)}</td><td class="small">${esc(l.by)}</td><td><span class="pill ${l.kind==='การมาเรียน'?'lv0':l.kind==='การแต่งกาย'?'lv1':'lv2'}">${esc(l.kind)}</span></td>
+        <td class="small">${thDate(l.date)} · ${esc(l.room)}</td><td class="small">${esc(l.student_name)}<div class="xs muted">${esc(l.student_id)}</div></td><td class="small">${esc(l.field)}</td>
+        <td class="small"><span class="muted">${esc(l.old_value)}</span> → <b>${esc(l.new_value)}</b></td><td class="small">${esc(l.reason)}</td></tr>`).join('')}</table></div>`:'<div class="empty">ยังไม่มีประวัติการแก้ไข</div>'}</div>`;
+  const go=()=>{ RC.logKind=$('lgK').value; RC.logQ=$('lgQ').value.trim(); pMcEdit(); };
+  $('lgGo').onclick=go; $('lgK').onchange=go; $('lgQ').onkeydown=e=>{ if(e.key==='Enter') go(); };
+  $('lgCsv').onclick=()=>{ const cols=['at','by','kind','year','term','date','room','student_id','student_name','field','old_value','new_value','reason','batch_id'];
+    const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+    const csv='﻿'+cols.join(',')+'\n'+RC.logRows.map(r=>cols.map(c=>q(r[c])).join(',')).join('\n');
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='KJST-Shield-EditLog.csv'; a.click(); };
 }
 function alertTable(list){
   if(!list.length) return '<div class="empty">ไม่มีนักเรียนที่ต้องติดตาม</div>';
@@ -776,6 +938,9 @@ document.addEventListener('click', e=>{
   const nb=t.closest('#nav [data-page]'); if(nb) return go(nb.dataset.page);
   const at=t.closest('[data-atab]'); if(at) return pAdmin(at.dataset.atab);
   if(t.closest('[data-close]') || t.id==='modal') return closeModal();
+  const mt=t.closest('[data-mctab]'); if(mt){ S.mcTab=mt.dataset.mctab; if(S.mcTab==='edit'&&!RC.cls&&/\//.test(S.mcCls||'')) RC.cls=S.mcCls; return pMyClass(); }
+  const rk=t.closest('[data-rckind]'); if(rk){ if(Object.keys(RC.ch).length && !confirm('ยังไม่ได้บันทึกการแก้ไข ต้องการออกจากหน้านี้หรือไม่?')) return; RC.kind=rk.dataset.rckind; RC.date=''; RC.ch={}; return pMcEdit(); }
+  const rd=t.closest('[data-rcdate]'); if(rd){ RC.date=rd.dataset.rcdate; return pMcEdit(); }
   const md=t.closest('[data-mcdate]'); if(md){ e.preventDefault(); return pMyClass(S.mcCls, md.dataset.mcdate); }
   const mcc=t.closest('[data-mccls]'); if(mcc) return pMyClass(mcc.dataset.mccls, S.mcDate);
   const gt=t.closest('[data-goto]'); if(gt){ e.preventDefault(); return go(gt.dataset.goto); }

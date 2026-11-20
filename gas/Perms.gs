@@ -11,6 +11,11 @@ function permTable_() {
     if (!r.action) return;
     t[r.action] = ROLES.filter(function (role) { return bool_(r[role]); });
   });
+  // action ใหม่ที่ยังไม่มีในชีต Permissions → ใช้ค่าตั้งต้นจาก PERMISSIONS_SEED
+  PERMISSIONS_SEED.forEach(function (p) {
+    if (t[p[0]]) return;
+    t[p[0]] = ROLES.filter(function (role, i) { return p[2 + i] === 1; });
+  });
   cache_().put('PERM_TABLE', JSON.stringify(t), 600);
   MEMO_._perm = t;
   return t;

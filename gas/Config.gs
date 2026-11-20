@@ -59,6 +59,7 @@ var SCHEMA = {
   RulesLog: { file: 'SYSTEM', cols: ['at', 'by', 'table', 'key', 'field', 'old_value', 'new_value'] },
   AttendanceSources: { file: 'SYSTEM', cols: ['year', 'term', 'file_id', 'label', 'active', 'last_pull', 'last_result'] },
   ShieldKPI: { file: 'SYSTEM', cols: ['year', 'code', 'component', 'indicator', 'target', 'actual'] },
+  EditLog: { file: 'SYSTEM', cols: ['at', 'by', 'kind', 'year', 'term', 'date', 'room', 'student_id', 'student_name', 'field', 'old_value', 'new_value', 'reason', 'batch_id'] },
   AuditLog: { file: 'SYSTEM', cols: ['at', 'by', 'action', 'detail'] },
 
   // ---------- database ----------
@@ -101,7 +102,8 @@ var PERMISSIONS_SEED = [
   ['users.manage',    'ซิงก์และกำหนดบทบาทผู้ใช้',                    0, 0, 0, 0, 1],
   ['data.import',     'นำเข้า DMC / ดึงข้อมูลเช็กชื่อ / ยอดยกมา',      0, 0, 0, 0, 1],
   ['settings.manage', 'ตั้งค่าปีการศึกษา ภาคเรียน เกณฑ์เฝ้าระวัง',      0, 0, 0, 0, 1],
-  ['shield.edit',     'บันทึกผลตัวชี้วัด KJST SHIELD',                 0, 0, 0, 0, 1]
+  ['shield.edit',     'บันทึกผลตัวชี้วัด KJST SHIELD',                 0, 0, 0, 0, 1],
+  ['records.edit',    'แก้ไขข้อมูลการมาเรียน/แต่งกาย/ทรงผมย้อนหลัง',     0, 0, 0, 1, 1]
 ];
 
 /** รายการคะแนนตั้งต้น: id, type, category, name, points, guidance, severe */
