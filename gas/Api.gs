@@ -64,6 +64,7 @@ var ACTIONS = {
   } },
 
   dashboard:    { perm: 'dashboard.view', fn: function (u) { return dashboard_(u); } },
+  myClass:      { perm: 'dashboard.view', fn: function (u, p) { return myClass_(u, p); } },
   history:      { perm: 'dashboard.view', fn: function () { return history_(); } },
   students:     { perm: 'student.view', fn: function (u) { return studentsList_(u); } },
   student:      { perm: 'student.view', fn: function (u, p) {
@@ -116,7 +117,7 @@ function careClassList_(u, cm) {
   return out;
 }
 
-var SETTING_KEYS = ['YEAR', 'TERM', 'RISK_CRITICAL', 'RISK_HIGH', 'RISK_WATCH', 'ATT_MIN', 'ATT_NEAR', 'MIN_DAYS', 'ABSENT_WATCH', 'LATE_WATCH', 'DRESS_WATCH', 'YEARS', 'GOOGLE_CLIENT_ID'];
+var SETTING_KEYS = ['YEAR', 'TERM', 'RISK_CRITICAL', 'RISK_HIGH', 'RISK_WATCH', 'ATT_MIN', 'ATT_NEAR', 'MIN_DAYS', 'ABSENT_WATCH', 'LATE_WATCH', 'DRESS_WATCH', 'YEARS', 'GOOGLE_CLIENT_ID', 'ATT_WEB_URL'];
 
 function settingsGet_() {
   var c = cfgAll_(), o = {};

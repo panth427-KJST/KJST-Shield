@@ -81,6 +81,12 @@ nav.menu .in{max-width:1280px;margin:0 auto;padding:0 12px;display:flex;gap:2px;
 nav.menu button{flex:0 0 auto;background:transparent;border:0;color:#D3DAEC;padding:12px 16px;margin-top:6px;border-radius:8px 8px 0 0;cursor:pointer;font-size:15px}
 nav.menu button.on{background:var(--gold2);color:var(--navy);font-weight:700}
 main{max-width:1280px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-direction:column;gap:18px}
+.mc-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;background:linear-gradient(135deg,#12245A,#1B3170);color:#fff;border-radius:16px;padding:18px 22px;border-bottom:4px solid var(--gold)}
+.mc-head h1{color:#fff}.mc-head .muted{color:#D8DDEB!important}
+.mc-actions{display:flex;flex-wrap:wrap;gap:10px}
+.mc-big{min-height:56px;font-size:17px;padding:0 22px;border-radius:12px;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+.mc-head .btn.pri{background:#fff;color:var(--navy);border-color:#fff}.mc-head .btn.pri:hover{background:#F3EEE2}
+@media(max-width:640px){.mc-actions{width:100%}.mc-big{flex:1 1 100%}}
 .ptitle{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px}
 .ptitle h1{font-size:25px}
 .cols{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
@@ -275,6 +281,7 @@ async function enter(){
 /* ===== PAGES ===== */
 const PAGES = [
   { id:'dashboard', label:'แดชบอร์ด', show:()=>can('dashboard.view'), render:pDashboard },
+  { id:'myclass', label:'ชั้นเรียนของฉัน', show:()=>can('dashboard.view') && hasMyClass(), render:pMyClass },
   { id:'students', label:'ข้อมูลนักเรียน', show:()=>can('student.view'), render:pStudents },
   { id:'scores', label:'คะแนนความประพฤติ', show:()=>can('score.record'), render:pScores },
   { id:'care', label:'ติดตามและส่งต่อ', show:()=>can('student.view'), render:pCare },
@@ -299,10 +306,10 @@ async function pDashboard(){
   if(L[2]) al.push(`กลุ่ม<b>เสี่ยง</b> ${L[2]} คน`);
   if(d.roomsTotal && d.roomsReported < d.roomsTotal) al.push(`วันนี้ยังไม่ได้เช็กชื่อ <b>${d.roomsTotal-d.roomsReported}</b> ห้อง`);
   const maxN = Math.max(1, ...d.certs.map(c=>c.n));
-  $('page').innerHTML = ptitle(S.init.user.roles.some(r=>['executive','score_admin','sysadmin'].includes(r))?'ภาพรวมโรงเรียน':'ภาพรวมนักเรียนในความดูแล',
+  $('page').innerHTML = ptitle('ภาพรวมโรงเรียน',
       'ข้อมูล ณ '+thDate(d.today)+(d.attUpdated?' · ข้อมูลเช็กชื่อล่าสุด '+esc(d.attUpdated):''))+
     `<div class="grid">
-      <div class="card kpi"><div class="l">นักเรียนในความดูแล</div><div class="v">${fmt(d.total)}</div><div class="s">ชาย ${fmt(d.male)} · หญิง ${fmt(d.female)}</div></div>
+      <div class="card kpi"><div class="l">นักเรียนทั้งโรงเรียน</div><div class="v">${fmt(d.total)}</div><div class="s">ชาย ${fmt(d.male)} · หญิง ${fmt(d.female)}</div></div>
       <div class="card kpi"><div class="l">อัตรามาเรียนเฉลี่ย</div><div class="v">${d.avgRate==null?'-':d.avgRate+'%'}</div><div class="s">ทั้งปีการศึกษา ${esc(d.year)}</div></div>
       <div class="card kpi"><div class="l">คะแนนความประพฤติเฉลี่ย</div><div class="v">${d.avgScore==null?'-':d.avgScore}</div><div class="s">ฐาน 100 คะแนน</div></div>
       <div class="card kpi"><div class="l">ต้องติดตาม</div><div class="v">${fmt(need)}</div><div class="s">เฝ้าระวัง ${L[1]} · เสี่ยง ${L[2]} · วิกฤต ${L[3]}</div></div>
@@ -322,10 +329,9 @@ async function pDashboard(){
           <div class="thin"><i style="width:${c.n?Math.max(c.n/maxN*100,2):0}%;background:${c.issue?'#1B3170':'#8E1F1F'}"></i></div></div>`).join('')}
       </div>
     </div>
+    ${attTodayCard(d.attToday)}
     ${dressCard(d.dress, d.today)}
-    <div class="card"><h2>นักเรียนที่ต้องติดตาม</h2>${alertTable(d.alerts)}</div>
-    <div class="card"><h2>วันนี้: ขาด · ลา · สาย · ราชการ · ผิดระเบียบ</h2>${d.todayList.length?`<div class="tw"><table><tr><th>นักเรียน</th><th>ชั้น</th><th>สถานะ</th><th>ผิดระเบียบ</th></tr>
-      ${d.todayList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td>${esc(t.status)}</td><td class="small">${esc(t.dress||'-')}</td></tr>`).join('')}</table></div>`:'<div class="empty">ยังไม่มีรายการผิดปกติวันนี้ (หรือยังไม่ได้ดึงข้อมูลเช็กชื่อ)</div>'}</div>
+    ${d.hasMyClass?`<div class="note">รายชื่อนักเรียนที่ต้องติดตาม ขาด ลา สาย และผิดระเบียบ ดูได้ที่เมนู <a href="#" data-goto="myclass"><b>ชั้นเรียนของฉัน</b></a></div>`:''}
     <div class="card"><h2>ข้อมูลย้อนหลังรายปีการศึกษา</h2><div id="hist" class="empty">กำลังโหลด…</div></div>`;
   api('history').then(h=>{ if(S.page!=='dashboard'||!$('hist')) return; $('hist').className=''; $('hist').innerHTML = `<div class="tw"><table><tr><th>ปีการศึกษา</th><th class="n">นักเรียน</th><th class="n">อัตรามาเรียน</th><th class="n">ครั้งที่หัก</th><th class="n">ครั้งที่เพิ่ม</th><th class="n">SHIELD</th></tr>
     ${h.map(y=>`<tr><td><b>${esc(y.year)}</b> ${y.current?'<span class="pill lv0">ปัจจุบัน</span>':''}</td><td class="n">${y.students==null?'-':fmt(y.students)}</td><td class="n">${y.attRate==null?'-':y.attRate+'%'}</td><td class="n">${fmt(y.minus)}</td><td class="n">${fmt(y.plus)}</td><td class="n">${y.shield==null?'-':y.shield+'%'}</td></tr>`).join('')}</table></div>`; }).catch(()=>{});
@@ -348,7 +354,7 @@ function dressCard(x, today){
   return `<div class="card"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline"><h2 style="margin:0">การตรวจระเบียบการแต่งกาย</h2>
       <span class="small muted">ภาคเรียนที่ ${esc(x.term)} · ข้อมูลจาก KJST Attendance · บันทึกเฉพาะผู้ที่ผิดระเบียบ</span></div>
     <div class="grid" style="margin:14px 0">
-      <div class="card kpi" style="box-shadow:none;border:1px solid var(--line)"><div class="l">ผิดระเบียบวันนี้</div><div class="v">${fmt(x.today.students)}</div><div class="s">คน · ${pct}% ของนักเรียนในความดูแล</div></div>
+      <div class="card kpi" style="box-shadow:none;border:1px solid var(--line)"><div class="l">ผิดระเบียบวันนี้</div><div class="v">${fmt(x.today.students)}</div><div class="s">คน · ${pct}% ของนักเรียน</div></div>
       <div class="card kpi" style="box-shadow:none;border:1px solid var(--line)"><div class="l">สะสมภาคเรียนนี้</div><div class="v">${fmt(x.termTotal)}</div><div class="s">ครั้ง · ${fmt(x.termStudents)} คน · ตรวจ ${fmt(x.checkDays)} วัน</div></div>
       <div class="card kpi" style="box-shadow:none;border:1px solid var(--line)"><div class="l">ผิดซ้ำถึงเกณฑ์เฝ้าระวัง</div><div class="v">${fmt(x.watch)}</div><div class="s">คน · ผิด ${x.watchN} ครั้งขึ้นไป</div></div>
     </div>
@@ -360,12 +366,101 @@ function dressCard(x, today){
       <div class="card main" style="box-shadow:none;border:1px solid var(--line)"><h3 style="font-size:16px;margin:0 0 6px">รายการที่ผิด (สะสมภาคเรียน)</h3>${hbars(x.items,'#1B3170','ครั้ง')}</div>
       <div class="card side" style="box-shadow:none;border:1px solid var(--line)"><h3 style="font-size:16px;margin:0 0 6px">${x.today.rooms.length?'ห้องที่มีผู้ผิดระเบียบวันนี้':'แยกระดับชั้น (สะสม)'}</h3>${x.today.rooms.length?hbars(x.today.rooms.slice(0,12),'#8E1F1F','คน'):hbars(x.grades,'#1B3170','ครั้ง')}</div>
     </div>
-    <h3 style="font-size:16px;margin:16px 0 8px">รายชื่อผู้ผิดระเบียบวันนี้</h3>
+    ${!x.today.list?'':`<h3 style="font-size:16px;margin:16px 0 8px">รายชื่อผู้ผิดระเบียบวันนี้</h3>
     ${x.today.list.length?`<div class="tw" style="max-height:420px;overflow:auto"><table><tr><th>นักเรียน</th><th>ชั้น</th><th>รายการ</th><th>หมายเหตุ</th></tr>
-      ${x.today.list.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td class="small">${esc(t.items)}</td><td class="small">${esc(t.note||'-')}</td></tr>`).join('')}</table></div>`:'<div class="empty">ยังไม่มีบันทึกผู้ผิดระเบียบวันนี้ (ระบบดึงข้อมูลเวลา 08.30 และ 10.00 น.)</div>'}
-    ${x.watchList.length?`<h3 style="font-size:16px;margin:16px 0 8px">ผิดระเบียบซ้ำ ${x.watchN} ครั้งขึ้นไป</h3><div class="tw" style="max-height:320px;overflow:auto"><table><tr><th>นักเรียน</th><th>ชั้น</th><th class="n">จำนวนครั้ง</th></tr>
+      ${x.today.list.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td class="small">${esc(t.items)}</td><td class="small">${esc(t.note||'-')}</td></tr>`).join('')}</table></div>`:'<div class="empty">ยังไม่มีบันทึกผู้ผิดระเบียบวันนี้ (ระบบดึงข้อมูลเวลา 08.30 และ 10.00 น.)</div>'}`}
+    ${x.watchList&&x.watchList.length?`<h3 style="font-size:16px;margin:16px 0 8px">ผิดระเบียบซ้ำ ${x.watchN} ครั้งขึ้นไป</h3><div class="tw" style="max-height:320px;overflow:auto"><table><tr><th>นักเรียน</th><th>ชั้น</th><th class="n">จำนวนครั้ง</th></tr>
       ${x.watchList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td class="n"><b>${t.n}</b></td></tr>`).join('')}</table></div>`:''}
   </div>`;
+}
+function hasMyClass(){ const u=S.init.user; return u.roles.some(r=>['executive','score_admin','sysadmin'].includes(r)) || (u.roles.includes('head')&&u.grades&&u.grades.length) || (u.roles.includes('advisor')&&u.rooms&&u.rooms.length); }
+function attTodayCard(rows){
+  if(!rows||!rows.length) return `<div class="card"><h2>การมาเรียนวันนี้</h2><div class="empty">ยังไม่มีข้อมูลเช็กชื่อของวันนี้ (ระบบดึงข้อมูลเวลา 08.30 และ 10.00 น.)</div></div>`;
+  const T={rooms:0,total:0,present:0,official:0,leave:0,late:0,absent:0,blank:0}; rows.forEach(r=>Object.keys(T).forEach(k=>T[k]+=r[k]));
+  const rate=r=>{ const c=r.present+r.official+r.leave+r.late+r.absent; return c?Math.round((r.present+r.official+r.late)/c*1000)/10+'%':'-'; };
+  const tr=(r,b)=>`<tr${b?' style="font-weight:600;background:#FBF8F1"':''}><td>${b?'รวม':esc(r.grade)}</td><td class="n">${r.rooms}</td><td class="n">${fmt(r.total)}</td><td class="n">${fmt(r.present)}</td><td class="n">${fmt(r.late)}</td><td class="n">${fmt(r.leave)}</td><td class="n">${fmt(r.absent)}</td><td class="n">${fmt(r.official)}</td><td class="n">${fmt(r.blank)}</td><td class="n"><b>${rate(r)}</b></td></tr>`;
+  return `<div class="card"><h2>การมาเรียนวันนี้ แยกระดับชั้น</h2><div class="tw"><table><tr><th>ระดับ</th><th class="n">ห้องที่เช็กแล้ว</th><th class="n">นักเรียน</th><th class="n">มา</th><th class="n">สาย</th><th class="n">ลา</th><th class="n">ขาด</th><th class="n">ราชการ</th><th class="n">ไม่ได้บันทึก</th><th class="n">อัตรามาเรียน</th></tr>
+    ${rows.map(r=>tr(r)).join('')}${tr(T,true)}</table></div></div>`;
+}
+
+/* ----- ชั้นเรียนของฉัน ----- */
+function addDay(iso,n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+async function pMyClass(cls, date){
+  const d = await run(api('myClass',{ cls: cls||S.mcCls||'', date: date||S.mcDate||'' })); if(!d) return;
+  S.mcCls=d.sel; S.mcDate=d.date;
+  const room = /\//.test(d.sel) ? d.sel : '';
+  const link = (extra) => { if(!d.attUrl) return ''; const q=new URLSearchParams(); if(room) q.set('cls',room); q.set('date',d.date); if(extra) q.set('mode',extra); return d.attUrl+(d.attUrl.includes('?')?'&':'?')+q.toString(); };
+  const btns = d.attUrl ? `<div class="mc-actions">
+      <a class="btn pri mc-big" href="${esc(link(''))}" target="_blank" rel="noopener"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>บันทึกการมาเรียน</a>
+      <a class="btn gold mc-big" href="${esc(link('dress'))}" target="_blank" rel="noopener"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3l3 3 3-3 5 3-2 5h-2v10H8V11H6L4 6z"/></svg>ตรวจระเบียบการแต่งกาย</a>
+    </div>` : `<div class="note">ยังไม่ได้ตั้งลิงก์ KJST e-Attendance (ตั้งค่าระบบ › ตั้งค่าทั่วไป › ATT_WEB_URL)</div>`;
+  const D=d.day, isToday=d.date===d.today;
+  const k=(l,v,s,c)=>`<div class="card kpi"><div class="l">${l}</div><div class="v"${c?` style="color:${c}"`:''}>${v}</div><div class="s">${s||''}</div></div>`;
+  const opt = d.options.map(o=>`<option value="${esc(o.v)}"${o.v===d.sel?' selected':''}>${esc(o.label)}${o.own?' (ห้องที่ปรึกษา)':''}</option>`).join('');
+  const recorded = D.roomsRecorded>0;
+  const mxT = 100;
+  const trend = d.trend.length?`<div style="display:flex;align-items:flex-end;gap:5px;height:130px;padding-top:6px">${d.trend.map(t=>`
+      <div class="click" data-mcdate="${t.date}" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer" title="${thDate(t.date)} · มาเรียน ${t.rate==null?'-':t.rate+'%'} · ขาด ${t.absent} · สาย ${t.late}">
+        <span class="xs" style="color:var(--navy);font-weight:600">${t.rate==null?'':Math.round(t.rate)}</span>
+        <i style="display:block;width:100%;max-width:30px;height:${t.rate==null?3:Math.max((t.rate-50)/(mxT-50)*95,3)}px;border-radius:5px 5px 0 0;background:${t.date===d.date?'#C9A227':'#1B3170'}"></i>
+        <span class="xs muted" style="white-space:nowrap">${esc(t.date.slice(8))}/${esc(t.date.slice(5,7))}</span></div>`).join('')}</div><div class="xs muted">อัตรามาเรียน (%) · กดแท่งเพื่อดูวันนั้น</div>`:'<div class="empty">ยังไม่มีข้อมูล</div>';
+  $('page').innerHTML = `<div class="mc-head">
+      <div><h1 style="font-size:25px">ชั้นเรียนของฉัน</h1><div class="muted small">ข้อมูลเฉพาะระดับชั้น/ห้องเรียนที่ดูแล${d.attUpdated?' · ดึงข้อมูลเช็กชื่อล่าสุด '+esc(d.attUpdated):''}</div></div>
+      ${btns}
+    </div>
+    <div class="card" style="margin-top:14px"><div class="row" style="align-items:flex-end">
+      <label class="f" style="flex:1 1 200px">ชั้นเรียน<select id="mcCls">${opt}</select></label>
+      <label class="f" style="flex:1 1 200px">วันที่<input type="date" id="mcDate" value="${d.date}" max="${d.today}"></label>
+      <div style="display:flex;gap:6px"><button type="button" class="btn" id="mcPrev" title="วันก่อนหน้า">‹ ก่อนหน้า</button><button type="button" class="btn" id="mcNext" ${isToday?'disabled':''} title="วันถัดไป">ถัดไป ›</button><button type="button" class="btn" id="mcToday" ${isToday?'disabled':''}>วันนี้</button></div>
+    </div>
+    ${d.dates.length?`<div class="xs muted" style="margin-top:8px">วันที่มีการเช็กชื่อล่าสุด: ${d.dates.slice(0,8).map(x=>`<a href="#" data-mcdate="${x}"${x===d.date?' style="font-weight:700"':''}>${thDate(x)}</a>`).join(' · ')}</div>`:''}</div>
+
+    <h2 style="margin:18px 0 10px">${isToday?'วันนี้ ('+thDate(d.date)+')':'วันที่ '+thDate(d.date)}</h2>
+    ${recorded?`<div class="grid">
+      ${k('อัตรามาเรียน',D.rate==null?'-':D.rate+'%','เช็กแล้ว '+D.roomsRecorded+'/'+D.roomsTotal+' ห้อง')}
+      ${k('มาเรียน',fmt(D.present),'จาก '+fmt(D.total)+' คน')}
+      ${k('มาสาย',fmt(D.late),'คน','#B4532A')}
+      ${k('ลา',fmt(D.leave),'คน')}
+      ${k('ขาดเรียน',fmt(D.absent),'คน','#8E1F1F')}
+      ${k('ไปราชการ/อื่น ๆ',fmt(D.official),'คน')}
+      ${k('ผิดระเบียบแต่งกาย',fmt(d.dressList.length),'คน','#8A6D10')}
+      ${D.blank?k('ยังไม่ได้บันทึก',fmt(D.blank),'คน (ห้องที่เช็กแล้ว)','#8E1F1F'):''}
+    </div>
+    ${D.roomsRecorded<D.roomsTotal?`<div class="note">ยังไม่ได้เช็กชื่อ ${D.roomsTotal-D.roomsRecorded} ห้อง: ${d.rooms.filter(r=>!r.recorded).map(r=>esc(r.cls)).join(', ')}</div>`:''}`
+    :`<div class="note">${isToday?'วันนี้ยังไม่มีข้อมูลเช็กชื่อ':'ไม่มีข้อมูลเช็กชื่อในวันนี้ (อาจเป็นวันหยุด)'}${isToday?' — ระบบดึงข้อมูลเวลา 08.30 และ 10.00 น.':''}</div>`}
+
+    ${d.rooms.length>1?`<div class="card"><h2>แยกห้องเรียน</h2><div class="tw"><table><tr><th>ห้อง</th><th class="n">นักเรียน</th><th class="n">มา</th><th class="n">สาย</th><th class="n">ลา</th><th class="n">ขาด</th><th class="n">ราชการ</th><th class="n">ไม่ได้บันทึก</th><th class="n">อัตรามาเรียน</th></tr>
+      ${d.rooms.map(r=>r.recorded?`<tr class="click" data-mccls="${esc(r.cls)}"><td><b>${esc(r.cls)}</b></td><td class="n">${r.total}</td><td class="n">${r.present}</td><td class="n">${r.late}</td><td class="n">${r.leave}</td><td class="n">${r.absent}</td><td class="n">${r.official}</td><td class="n">${r.blank||'-'}</td><td class="n"><b>${r.rate==null?'-':r.rate+'%'}</b></td></tr>`
+        :`<tr class="click" data-mccls="${esc(r.cls)}"><td><b>${esc(r.cls)}</b></td><td class="n">${r.total}</td><td colspan="7" class="small" style="color:#8E1F1F">ยังไม่ได้เช็กชื่อ</td></tr>`).join('')}</table></div><div class="xs muted" style="margin-top:6px">กดที่ห้องเพื่อดูเฉพาะห้องนั้น</div></div>`:''}
+
+    <div class="cols">
+      <div class="card main"><h2>ขาด · ลา · สาย · ราชการ</h2>${d.absentees.length?`<div class="tw" style="max-height:420px;overflow:auto"><table><tr><th>นักเรียน</th><th>ชั้น</th><th>สถานะ</th></tr>
+        ${d.absentees.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td><span class="pill ${t.status==='ขาด'?'lv3':t.status==='สาย'?'lv2':'lv0'}">${esc(t.status)}</span></td></tr>`).join('')}</table></div>`:`<div class="empty">${recorded?'มาเรียนครบทุกคน':'ไม่มีข้อมูล'}</div>`}</div>
+      <div class="card side"><h2>ผิดระเบียบการแต่งกาย</h2>${d.dressList.length?`<div class="tw" style="max-height:420px;overflow:auto"><table><tr><th>นักเรียน</th><th>รายการ</th></tr>
+        ${d.dressList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}<div class="xs muted">${esc(t.cls)}</div></td><td class="small">${esc(t.items)}${t.note?'<div class="xs muted">'+esc(t.note)+'</div>':''}</td></tr>`).join('')}</table></div>`:'<div class="empty">ไม่มีบันทึกผู้ผิดระเบียบในวันนี้</div>'}</div>
+    </div>
+
+    <div class="card"><h2>แนวโน้มการมาเรียน (20 วันล่าสุด)</h2>${trend}</div>
+
+    <h2 style="margin:18px 0 10px">ภาพรวมสะสม ปีการศึกษา ${esc(d.year)}</h2>
+    <div class="grid">
+      ${k('นักเรียน',fmt(d.total),'คน')}
+      ${k('อัตรามาเรียนเฉลี่ย',d.avgRate==null?'-':d.avgRate+'%','ทั้งปีการศึกษา')}
+      ${k('คะแนนความประพฤติเฉลี่ย',d.avgScore==null?'-':d.avgScore,'ฐาน 100')}
+      ${k('ต้องติดตาม',fmt(d.levels[1]+d.levels[2]+d.levels[3]),'เฝ้าระวัง '+d.levels[1]+' · เสี่ยง '+d.levels[2]+' · วิกฤต '+d.levels[3])}
+      ${k('ผิดระเบียบแต่งกายสะสม',fmt(d.dress.termTotal),'ครั้ง · '+fmt(d.dress.termStudents)+' คน (ภาคเรียนนี้)')}
+      ${k('ผิดซ้ำถึงเกณฑ์',fmt(d.dress.watch),'คน · '+d.dress.watchN+' ครั้งขึ้นไป')}
+    </div>
+    <div class="cols" style="margin-top:14px">
+      <div class="card main"><h2>รายการที่ผิดระเบียบ (สะสมภาคเรียน)</h2>${hbars(d.dress.items,'#1B3170','ครั้ง')}</div>
+      <div class="card side"><h2>ผิดระเบียบซ้ำ ${d.dress.watchN} ครั้งขึ้นไป</h2>${d.dress.watchList.length?`<div class="tw" style="max-height:320px;overflow:auto"><table><tr><th>นักเรียน</th><th class="n">ครั้ง</th></tr>${d.dress.watchList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}<div class="xs muted">${esc(t.cls)}</div></td><td class="n"><b>${t.n}</b></td></tr>`).join('')}</table></div>`:'<div class="empty">ไม่มี</div>'}</div>
+    </div>
+    <div class="card"><h2>นักเรียนที่ต้องติดตาม</h2>${alertTable(d.alerts)}</div>`;
+  $('mcCls').onchange=e=>pMyClass(e.target.value, S.mcDate);
+  $('mcDate').onchange=e=>{ if(e.target.value) pMyClass(S.mcCls, e.target.value); };
+  $('mcPrev').onclick=()=>pMyClass(S.mcCls, addDay(d.date,-1));
+  $('mcNext').onclick=()=>pMyClass(S.mcCls, addDay(d.date,1));
+  $('mcToday').onclick=()=>pMyClass(S.mcCls, d.today);
 }
 function alertTable(list){
   if(!list.length) return '<div class="empty">ไม่มีนักเรียนที่ต้องติดตาม</div>';
@@ -679,6 +774,9 @@ document.addEventListener('click', e=>{
   const nb=t.closest('#nav [data-page]'); if(nb) return go(nb.dataset.page);
   const at=t.closest('[data-atab]'); if(at) return pAdmin(at.dataset.atab);
   if(t.closest('[data-close]') || t.id==='modal') return closeModal();
+  const md=t.closest('[data-mcdate]'); if(md){ e.preventDefault(); return pMyClass(S.mcCls, md.dataset.mcdate); }
+  const mcc=t.closest('[data-mccls]'); if(mcc) return pMyClass(mcc.dataset.mccls, S.mcDate);
+  const gt=t.closest('[data-goto]'); if(gt){ e.preventDefault(); return go(gt.dataset.goto); }
   const sr=t.closest('[data-sid]'); if(sr && !t.closest('button')) return openStudent(sr.dataset.sid);
   const v=t.closest('[data-void]'); if(v) return voidScore(v.dataset.void);
   const c=t.closest('[data-care]'); if(c) return careUpdate(c.dataset.care);

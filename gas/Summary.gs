@@ -67,9 +67,9 @@ function buildSummary_() {
 
 function scoped_(u) { var sc = scope_(u); return summary_().filter(function (s) { return inScope_(sc, s.g, s.r); }); }
 
-/* ===== แดชบอร์ด ===== */
+/* ===== แดชบอร์ด: ภาพรวมทั้งโรงเรียน (ทุกคนเห็นเหมือนกัน · เฉพาะตัวเลขสรุป ไม่มีรายชื่อนักเรียน) ===== */
 function dashboard_(u) {
-  var list = scoped_(u), L = [0, 0, 0, 0], male = 0, female = 0, sumR = 0, nR = 0, sumS = 0, byGrade = {}, certCount = {};
+  var list = summary_(), L = [0, 0, 0, 0], male = 0, female = 0, sumR = 0, nR = 0, sumS = 0, byGrade = {}, certCount = {};
   list.forEach(function (s) {
     L[s.lv]++;
     if (s.sex === 'ชาย') male++; else if (s.sex === 'หญิง') female++;
@@ -79,25 +79,114 @@ function dashboard_(u) {
     g.n++; g.lv[s.lv]++;
     certCount[s.cert] = (certCount[s.cert] || 0) + 1;
   });
-  var today = today_(), sc = scope_(u), sm = {};
+  var today = today_(), sm = {};
   list.forEach(function (s) { sm[s.id] = s; });
-  var todayList = rows_('AttendanceDaily').filter(function (d) { return d.date === today && sm[d.student_id]; }).map(function (d) {
-    return { id: d.student_id, name: sm[d.student_id].name, cls: cls_(d.grade, d.room), status: d.status, dress: d.dress_items };
-  });
   var att = {}; try { att = JSON.parse(cfg_('ATT_TODAY') || '{}'); } catch (e) {}
-  var cm = classMap_(), myRooms = [];
-  Object.keys(cm).forEach(function (g) { cm[g].forEach(function (r) { if (inScope_(sc, g, r)) myRooms.push(cls_(g, r)); }); });
-  var reported = att.date === today ? (att.rooms || []).filter(function (r) { return myRooms.indexOf(r) >= 0; }).length : 0;
+  var cm = classMap_(), rooms = [];
+  Object.keys(cm).forEach(function (g) { cm[g].forEach(function (r) { rooms.push(cls_(g, r)); }); });
+  var reported = att.date === today ? (att.rooms || []).filter(function (r) { return rooms.indexOf(r) >= 0; }).length : 0;
+  // การมาเรียนวันนี้แยกระดับชั้น
+  var tg = {};
+  rows_('AttendanceRoomDaily').forEach(function (d) {
+    if (d.date !== today || d.year !== year_() || d.term !== term_()) return;
+    var x = tg[d.grade] = tg[d.grade] || { grade: d.grade, rooms: 0, total: 0, present: 0, official: 0, leave: 0, late: 0, absent: 0, blank: 0 };
+    x.rooms++;
+    ['total', 'present', 'official', 'leave', 'late', 'absent', 'blank'].forEach(function (k) { x[k] += num_(d[k]); });
+  });
+  var dress = dressDash_(list, sm, today);
+  delete dress.today.list; delete dress.watchList;   // แดชบอร์ดรวมไม่แสดงรายชื่อ
   return {
     year: year_(), term: term_(), today: today, total: list.length, male: male, female: female, levels: L,
     avgRate: nR ? round1_(sumR / nR) : null, avgScore: list.length ? round1_(sumS / list.length) : null,
     byGrade: Object.keys(byGrade).sort(function (a, b) { return gnum_(a) - gnum_(b); }).map(function (k) { return byGrade[k]; }),
     certs: certRules_().map(function (c) { return { label: c.label, issue: c.issue, min: c.min, max: c.max, n: certCount[c.label] || 0 }; }),
-    alerts: list.filter(function (s) { return s.lv > 0; }).sort(function (a, b) { return b.lv - a.lv || a.score - b.score; }).slice(0, 300)
-      .map(function (s) { return { id: s.id, name: s.name, cls: cls_(s.g, s.r), score: s.score, rate: s.rate, lv: s.lv, reasons: s.reasons, advice: s.advice }; }),
-    todayList: todayList, roomsTotal: myRooms.length, roomsReported: reported, attUpdated: att.at || '',
-    dress: dressDash_(list, sm, today),
+    attToday: Object.keys(tg).sort(function (a, b) { return gnum_(a) - gnum_(b); }).map(function (k) { return tg[k]; }),
+    roomsTotal: rooms.length, roomsReported: reported, attUpdated: att.at || '',
+    dress: dress, hasMyClass: myOptions_(u).length > 0,
     shield: shieldCalc_(year_(), summary_()).overall
+  };
+}
+
+/* ===== ชั้นเรียนของฉัน: เฉพาะระดับชั้น/ห้องที่ดูแล · เลือกดูรายวันย้อนหลังได้ ===== */
+/** ตัวเลือกชั้นเรียนตามขอบเขต: "ทั้งโรงเรียน" (ถ้าเห็นทั้งหมด) · "ม.X" (ทั้งระดับ) · "ม.X/Y" */
+function myOptions_(u) {
+  var sc = scope_(u), cm = classMap_(), out = [];
+  if (sc.all) out.push({ v: 'all', label: 'ทั้งโรงเรียน' });
+  Object.keys(cm).forEach(function (g) {
+    var grade = sc.all || sc.grades.indexOf(g) >= 0;
+    var rs = cm[g].filter(function (r) { return grade || sc.rooms.indexOf(cls_(g, r)) >= 0; });
+    if (grade) out.push({ v: g, label: 'ทั้งระดับ ' + g });
+    rs.forEach(function (r) { out.push({ v: cls_(g, r), label: cls_(g, r), own: sc.rooms.indexOf(cls_(g, r)) >= 0 }); });
+  });
+  return out;
+}
+
+function myClass_(u, p) {
+  var opts = myOptions_(u);
+  if (!opts.length) throw err_('FORBIDDEN', 'บัญชีนี้ยังไม่ได้กำหนดระดับชั้นหรือห้องเรียนที่ดูแล กรุณาติดต่อผู้ดูแลระบบ');
+  var sc = scope_(u), vals = opts.map(function (o) { return o.v; });
+  var sel = vals.indexOf(String(p.cls || '')) >= 0 ? String(p.cls) : null;
+  if (!sel) {   // ค่าเริ่มต้น: ห้องที่เป็นครูที่ปรึกษา → ระดับที่เป็นหัวหน้า → ตัวเลือกแรก
+    var own = opts.filter(function (o) { return o.own; })[0];
+    sel = own ? own.v : (sc.grades.length && vals.indexOf(sc.grades[0]) >= 0 ? sc.grades[0] : vals[0]);
+  }
+  var inSel = function (g, r) { return sel === 'all' || sel === g || sel === cls_(g, r); };
+  var y = year_(), term = term_(), today = today_();
+
+  var list = summary_().filter(function (s) { return inSel(s.g, s.r); }), sm = {};
+  list.forEach(function (s) { sm[s.id] = s; });
+  var rd = rows_('AttendanceRoomDaily').filter(function (d) { return d.year === y && inSel(d.grade, d.room) && d.date <= today; });
+  var dset = {}; rd.forEach(function (d) { dset[d.date] = 1; });
+  var dates = Object.keys(dset).sort().reverse();
+  var date = normDate_(str_(p.date)) || '';
+  if (!date || date > today) date = today;
+
+  // สถิติวันที่เลือก
+  var cm = classMap_(), roomsSel = [];
+  Object.keys(cm).forEach(function (g) { cm[g].forEach(function (r) { if (inSel(g, r)) roomsSel.push({ grade: g, room: r }); }); });
+  var dayRows = rd.filter(function (d) { return d.date === date; }), byRoom = {};
+  dayRows.forEach(function (d) { byRoom[cls_(d.grade, d.room)] = d; });
+  var day = { total: 0, present: 0, official: 0, leave: 0, late: 0, absent: 0, blank: 0, roomsRecorded: dayRows.length, roomsTotal: roomsSel.length };
+  dayRows.forEach(function (d) { ['total', 'present', 'official', 'leave', 'late', 'absent', 'blank'].forEach(function (k) { day[k] += num_(d[k]); }); });
+  var coded = day.present + day.official + day.leave + day.late + day.absent;
+  day.rate = coded ? round1_((day.present + day.official + day.late) / coded * 100) : null;
+  var rooms = roomsSel.map(function (x) {
+    var c = cls_(x.grade, x.room), d = byRoom[c];
+    if (!d) return { cls: c, recorded: false, total: list.filter(function (s) { return s.g === x.grade && s.r === x.room; }).length };
+    var cd = num_(d.present) + num_(d.official) + num_(d.leave) + num_(d.late) + num_(d.absent);
+    return { cls: c, recorded: true, total: num_(d.total), present: num_(d.present), official: num_(d.official), leave: num_(d.leave), late: num_(d.late),
+             absent: num_(d.absent), blank: num_(d.blank), rate: cd ? round1_((num_(d.present) + num_(d.official) + num_(d.late)) / cd * 100) : null };
+  });
+  var dressDay = {};
+  rows_('DressChecks').forEach(function (d) { if (d.date === date && sm[d.student_id]) dressDay[d.student_id] = d; });
+  var absentees = rows_('AttendanceDaily').filter(function (d) { return d.date === date && sm[d.student_id] && d.status !== 'มา'; }).map(function (d) {
+    return { id: d.student_id, name: sm[d.student_id].name, cls: cls_(d.grade, d.room), status: d.status };
+  }).sort(function (a, b) { return a.cls.localeCompare(b.cls, 'th', { numeric: true }) || a.name.localeCompare(b.name, 'th'); });
+  var dressList = Object.keys(dressDay).map(function (id) {
+    var d = dressDay[id]; return { id: id, name: sm[id].name, cls: cls_(d.grade, d.room), items: d.items, note: d.note };
+  }).sort(function (a, b) { return a.cls.localeCompare(b.cls, 'th', { numeric: true }); });
+
+  // แนวโน้มอัตรามาเรียน 20 วันล่าสุดที่มีการเช็กชื่อ
+  var tr = {};
+  rd.forEach(function (d) {
+    var t = tr[d.date] = tr[d.date] || { ok: 0, coded: 0, absent: 0, late: 0 };
+    var cd = num_(d.present) + num_(d.official) + num_(d.leave) + num_(d.late) + num_(d.absent);
+    t.ok += num_(d.present) + num_(d.official) + num_(d.late); t.coded += cd; t.absent += num_(d.absent); t.late += num_(d.late);
+  });
+  var trend = Object.keys(tr).sort().slice(-20).map(function (k) { var t = tr[k]; return { date: k, rate: t.coded ? round1_(t.ok / t.coded * 100) : null, absent: t.absent, late: t.late }; });
+
+  // ภาพรวมสะสม (ปีการศึกษา) ของกลุ่มที่เลือก
+  var L = [0, 0, 0, 0], sumS = 0, sumR = 0, nR = 0;
+  list.forEach(function (s) { L[s.lv]++; sumS += s.score; if (s.rate !== null) { sumR += s.rate; nR++; } });
+  var dress = dressDash_(list, sm, date);
+  return {
+    year: y, term: term, today: today, date: date, dates: dates.slice(0, 200), sel: sel, options: opts,
+    attUrl: String(cfg_('ATT_WEB_URL') || ''), attUpdated: (function () { try { return JSON.parse(cfg_('ATT_TODAY') || '{}').at || ''; } catch (e) { return ''; } })(),
+    day: day, rooms: rooms, absentees: absentees, dressList: dressList, trend: trend,
+    total: list.length, levels: L, avgScore: list.length ? round1_(sumS / list.length) : null, avgRate: nR ? round1_(sumR / nR) : null,
+    dress: { termTotal: dress.termTotal, termStudents: dress.termStudents, items: dress.items, watchN: dress.watchN, watch: dress.watch, watchList: dress.watchList },
+    alerts: list.filter(function (s) { return s.lv > 0; }).sort(function (a, b) { return b.lv - a.lv || a.score - b.score; }).slice(0, 300)
+      .map(function (s) { return { id: s.id, name: s.name, cls: cls_(s.g, s.r), score: s.score, rate: s.rate, lv: s.lv, reasons: s.reasons, advice: s.advice }; })
   };
 }
 

@@ -36,7 +36,7 @@ var CONFIG_DEFAULTS = [
   ['LATE_WATCH', '5', 'มาสายสะสม (ครั้ง) = เฝ้าระวัง'],
   ['DRESS_WATCH', '3', 'ผิดระเบียบแต่งกาย/ทรงผมสะสม (ครั้ง) = เฝ้าระวัง'],
   ['SESSION_HOURS', '6', 'อายุ session (ชั่วโมง สูงสุด 6)'],
-  ['DAILY_KEEP_DAYS', '45', 'เก็บรายการขาด/ลา/สายรายวันย้อนหลังกี่วัน'],
+  ['ATT_WEB_URL', 'https://panth427-kjst.github.io/KJST-Attendance/', 'ลิงก์หน้าเว็บ KJST e-Attendance (ปุ่มบันทึกการมาเรียน/ตรวจระเบียบ ในหน้าชั้นเรียนของฉัน)'],
   ['YEARS', '2567,2568,2569', 'ปีการศึกษาที่แสดงในข้อมูลย้อนหลัง']
 ];
 
@@ -76,6 +76,7 @@ var SCHEMA = {
   },
   AttendanceStats: { file: 'DATA', cols: ['year', 'term', 'student_id', 'present', 'official', 'leave', 'late', 'absent', 'days', 'dress', 'updated_at'] },
   AttendanceDaily: { file: 'DATA', cols: ['date', 'student_id', 'grade', 'room', 'status', 'dress_items'] },
+  AttendanceRoomDaily: { file: 'DATA', cols: ['year', 'term', 'date', 'grade', 'room', 'total', 'present', 'official', 'leave', 'late', 'absent', 'blank'] },
   DressChecks: { file: 'DATA', cols: ['year', 'term', 'date', 'student_id', 'grade', 'room', 'items', 'note', 'recorded_by'] },
   CareLogs: { file: 'DATA', cols: ['care_id', 'date', 'student_id', 'grade', 'room', 'kind', 'detail', 'referred_to', 'status', 'recorded_by', 'recorded_at', 'updated_by', 'updated_at'] },
   StudentHistory: { file: 'DATA', cols: ['year', 'student_id', 'name', 'grade', 'room', 'status'] }

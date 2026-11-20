@@ -26,10 +26,10 @@ function attSources_(onlyActive) {
 
 /** ดึงข้อมูลทุกแหล่งของปีการศึกษาปัจจุบัน → AttendanceStats + AttendanceDaily */
 function pullAttendance_(by) {
-  var y = year_(), today = today_(), keepFrom = addDays_(today, -cfgNum_('DAILY_KEEP_DAYS'));
+  var y = year_(), today = today_(), keepFrom = '';   // เก็บรายวันครบทั้งปีการศึกษา (ใช้ดูย้อนหลังในหน้าชั้นเรียนของฉัน)
   var sources = attSources_(true).filter(function (s) { return s.year === y; });
   if (!sources.length) throw err_('INPUT', 'ยังไม่ได้ตั้งค่าไฟล์ E-Attendance ของปีการศึกษา ' + y);
-  var stats = [], daily = [], dress = [], results = [], stamp = now_(), todayRooms = {}, roomsTotal = 0;
+  var stats = [], daily = [], dress = [], roomDaily = [], results = [], stamp = now_(), todayRooms = {}, roomsTotal = 0;
 
   sources.forEach(function (src) {
     var r = { year: src.year, term: src.term, rooms: 0, students: 0, days: 0, coverage: 0, error: '' };
@@ -47,21 +47,32 @@ function pullAttendance_(by) {
           if (iso && iso <= today) cols.push({ c: c, iso: iso });
         }
         r.rooms++;
+        var dayCnt = {};   // iso → { present, official, leave, late, absent, coded }
+        cols.forEach(function (col) { dayCnt[col.iso] = { present: 0, official: 0, leave: 0, late: 0, absent: 0, coded: 0 }; });
+        var nStu = 0;
         if (src.term === term_()) roomsTotal++;
         var recorded = {};
         for (var i = 1; i < v.length; i++) {
           if (!/^\d+$/.test(String(v[i][0]).trim())) continue;
           var id = sid_(v[i][1]); if (!id) continue;
+          nStu++;
           var x = per[id] = per[id] || { present: 0, official: 0, leave: 0, late: 0, absent: 0, dress: 0, grade: grade, room: room };
           cols.forEach(function (col) {
             var code = String(v[i][col.c] || '').trim().charAt(0);
             if (!ATT_CODES[code]) return;
             recorded[col.iso] = 1;
+            var dc = dayCnt[col.iso]; dc.coded++;
+            dc[{ '1': 'present', '2': 'official', '3': 'leave', '4': 'late', '5': 'absent' }[code]]++;
             if (code === '1') x.present++; else if (code === '2') x.official++; else if (code === '3') x.leave++;
             else if (code === '4') x.late++; else if (code === '5') x.absent++;
             if (code !== '1' && col.iso >= keepFrom) daily.push({ date: col.iso, student_id: id, grade: grade, room: room, status: ATT_CODES[code], dress_items: '' });
           });
         }
+        Object.keys(dayCnt).forEach(function (iso) {
+          var dc = dayCnt[iso]; if (!dc.coded) return;
+          roomDaily.push({ year: src.year, term: src.term, date: iso, grade: grade, room: room, total: nStu, present: dc.present, official: dc.official,
+                           leave: dc.leave, late: dc.late, absent: dc.absent, blank: Math.max(0, nStu - dc.coded) });
+        });
         if (recorded[today] && src.term === term_()) todayRooms[cls_(grade, room)] = 1;
         var nRec = Object.keys(recorded).length;
         maxDays = Math.max(maxDays, nRec);
@@ -114,6 +125,11 @@ function pullAttendance_(by) {
     });
     writeAll_('AttendanceStats', keepStats.concat(stats));
     writeAll_('AttendanceDaily', daily.sort(function (a, b) { return b.date.localeCompare(a.date); }));
+    var keepRD = rows_('AttendanceRoomDaily').filter(function (d) {
+      return !sources.some(function (src) { return src.year === d.year && src.term === d.term; }) ||
+             results.some(function (rr) { return rr.error && rr.year === d.year && rr.term === d.term; });
+    });
+    writeAll_('AttendanceRoomDaily', keepRD.concat(roomDaily).sort(function (a, b) { return b.date.localeCompare(a.date) || gnum_(a.grade) - gnum_(b.grade) || Number(a.room) - Number(b.room); }));
     var keepDress = rows_('DressChecks').filter(function (d) {
       return !sources.some(function (src) { return src.year === d.year && src.term === d.term; }) ||
              results.some(function (rr) { return rr.error && rr.year === d.year && rr.term === d.term; });
