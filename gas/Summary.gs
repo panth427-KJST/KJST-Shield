@@ -54,7 +54,7 @@ function buildSummary_() {
     }
     if (x.A >= T.absent) flag(1, 'ขาดเรียนสะสม ' + x.A + ' วัน', 'ระบบเพื่อนช่วยเพื่อน และโทรติดตามผู้ปกครองทุกครั้งที่ขาด');
     if (x.L >= T.late) flag(1, 'มาสายสะสม ' + x.L + ' ครั้ง', 'กิจกรรม "มาเช้า ได้ดาว" ตรวจสอบปัญหาการเดินทาง');
-    if (x.dress >= T.dress) flag(1, 'ผิดระเบียบแต่งกาย/ทรงผม ' + x.dress + ' ครั้ง', 'ตักเตือน ชี้แจงผู้ปกครอง ประสานกองทุนชุดนักเรียนหากขาดแคลน');
+    if (x.dress >= T.dress) flag(1, 'ผิดระเบียบการแต่งกาย ' + x.dress + ' ครั้ง', 'ตักเตือน ชี้แจงผู้ปกครอง ประสานกองทุนชุดนักเรียนหากขาดแคลน');
     Object.keys(x.sev).forEach(function (k) { flag(2, 'พฤติกรรมเสี่ยง: ' + k + ' (' + x.sev[k] + ' ครั้ง)', 'ส่งต่อครูแนะแนว/ฝ่ายปกครอง และหน่วยงานภายนอกตามความเหมาะสม'); });
     var cert = certOf_(score, certs);
     return {
@@ -96,7 +96,40 @@ function dashboard_(u) {
     alerts: list.filter(function (s) { return s.lv > 0; }).sort(function (a, b) { return b.lv - a.lv || a.score - b.score; }).slice(0, 300)
       .map(function (s) { return { id: s.id, name: s.name, cls: cls_(s.g, s.r), score: s.score, rate: s.rate, lv: s.lv, reasons: s.reasons, advice: s.advice }; }),
     todayList: todayList, roomsTotal: myRooms.length, roomsReported: reported, attUpdated: att.at || '',
+    dress: dressDash_(list, sm, today),
     shield: shieldCalc_(year_(), summary_()).overall
+  };
+}
+
+/* ===== การตรวจระเบียบการแต่งกาย (สำหรับแดชบอร์ด ตามขอบเขตของผู้ใช้) ===== */
+function dressDash_(list, sm, today) {
+  var term = term_(), y = year_(), watchN = cfgNum_('DRESS_WATCH') || 3;
+  var recs = rows_('DressChecks').filter(function (d) { return d.year === y && d.term === term && sm[d.student_id]; });
+  var tItems = {}, aItems = {}, rooms = {}, grades = {}, byDate = {}, termStu = {}, todayList = [], todayStu = {};
+  recs.forEach(function (d) {
+    var its = splitList_(d.items); if (!its.length) its = ['ไม่ระบุ'];
+    byDate[d.date] = (byDate[d.date] || 0) + 1;
+    termStu[d.student_id] = 1;
+    grades[d.grade] = (grades[d.grade] || 0) + 1;
+    its.forEach(function (i) { aItems[i] = (aItems[i] || 0) + 1; });
+    if (d.date === today) {
+      todayStu[d.student_id] = 1;
+      var c = cls_(d.grade, d.room); rooms[c] = (rooms[c] || 0) + 1;
+      its.forEach(function (i) { tItems[i] = (tItems[i] || 0) + 1; });
+      todayList.push({ id: d.student_id, name: sm[d.student_id].name, cls: c, items: d.items, note: d.note });
+    }
+  });
+  var toArr = function (o) { return Object.keys(o).map(function (k) { return { k: k, n: o[k] }; }).sort(function (a, b) { return b.n - a.n; }); };
+  var dates = Object.keys(byDate).sort().slice(-15);
+  var watch = list.filter(function (s) { return s.dress >= watchN; }).sort(function (a, b) { return b.dress - a.dress; });
+  todayList.sort(function (a, b) { return a.cls.localeCompare(b.cls, 'th', { numeric: true }); });
+  return {
+    term: term, watchN: watchN, total: list.length,
+    today: { students: Object.keys(todayStu).length, items: toArr(tItems), rooms: toArr(rooms), list: todayList },
+    termTotal: recs.length, termStudents: Object.keys(termStu).length, checkDays: Object.keys(byDate).length,
+    items: toArr(aItems), grades: Object.keys(grades).sort(function (a, b) { return gnum_(a) - gnum_(b); }).map(function (g) { return { k: g, n: grades[g] }; }),
+    trend: dates.map(function (d) { return { date: d, n: byDate[d] }; }),
+    watch: watch.length, watchList: watch.slice(0, 50).map(function (s) { return { id: s.id, name: s.name, cls: cls_(s.g, s.r), n: s.dress }; })
   };
 }
 
@@ -122,6 +155,9 @@ function studentDetail_(id, opts) {
   res.att = rows_('AttendanceDaily').filter(function (d) { return d.student_id === id; })
     .map(function (d) { return { date: d.date, status: d.status, dress: d.dress_items }; })
     .sort(function (a, b) { return a.date < b.date ? 1 : -1; }).slice(0, 60);
+  res.dressLog = rows_('DressChecks').filter(function (d) { return d.student_id === id; })
+    .map(function (d) { return { date: d.date, year: d.year, term: d.term, items: d.items, note: d.note, by: opts.staff ? d.recorded_by : '' }; })
+    .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
   res.terms = rows_('AttendanceStats').filter(function (a) { return a.student_id === id; }).map(function (a) {
     return { year: a.year, term: a.term, present: num_(a.present), official: num_(a.official), leave: num_(a.leave), late: num_(a.late), absent: num_(a.absent), days: num_(a.days), dress: num_(a.dress) };
   });

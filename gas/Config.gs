@@ -76,6 +76,7 @@ var SCHEMA = {
   },
   AttendanceStats: { file: 'DATA', cols: ['year', 'term', 'student_id', 'present', 'official', 'leave', 'late', 'absent', 'days', 'dress', 'updated_at'] },
   AttendanceDaily: { file: 'DATA', cols: ['date', 'student_id', 'grade', 'room', 'status', 'dress_items'] },
+  DressChecks: { file: 'DATA', cols: ['year', 'term', 'date', 'student_id', 'grade', 'room', 'items', 'note', 'recorded_by'] },
   CareLogs: { file: 'DATA', cols: ['care_id', 'date', 'student_id', 'grade', 'room', 'kind', 'detail', 'referred_to', 'status', 'recorded_by', 'recorded_at', 'updated_by', 'updated_at'] },
   StudentHistory: { file: 'DATA', cols: ['year', 'student_id', 'name', 'grade', 'room', 'status'] }
 };

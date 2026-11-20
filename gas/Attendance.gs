@@ -2,7 +2,8 @@
  * Attendance.gs — ดึงข้อมูลจาก KJST E-Attendance (อ่านอย่างเดียว)
  *  ไฟล์ละ 1 ภาคเรียน · ชีตห้อง "ม.X/Y" · แถว = นักเรียน · คอลัมน์ = วันที่ ("พุธ 28 ต.ค. 26")
  *  สถานะ: 1 มาโรงเรียน, 2 ไปราชการ/อื่นๆ (นับเป็นมา), 3 ลาป่วย/ลากิจ, 4 มาสาย, 5 ขาดเรียน
- *  ผลตรวจแต่งกาย/ทรงผม (ถ้ามี): ชีต "_ตรวจระเบียบ" คอลัมน์ date, room, student_id, items
+ *  ผลตรวจการแต่งกาย (ถ้ามี): ชีต "_ตรวจระเบียบ" คอลัมน์ date, student_id, room, items, note, recorded_by, status
+ *    (บันทึกเฉพาะคนที่ผิดระเบียบ · status = void ไม่นับ) → เก็บใน DressChecks สำหรับแดชบอร์ด
  ********************************************************************/
 
 var TH_MONTHS = { 'ม.ค.': 1, 'ก.พ.': 2, 'มี.ค.': 3, 'เม.ย.': 4, 'พ.ค.': 5, 'มิ.ย.': 6, 'ก.ค.': 7, 'ส.ค.': 8, 'ก.ย.': 9, 'ต.ค.': 10, 'พ.ย.': 11, 'ธ.ค.': 12 };
@@ -28,7 +29,7 @@ function pullAttendance_(by) {
   var y = year_(), today = today_(), keepFrom = addDays_(today, -cfgNum_('DAILY_KEEP_DAYS'));
   var sources = attSources_(true).filter(function (s) { return s.year === y; });
   if (!sources.length) throw err_('INPUT', 'ยังไม่ได้ตั้งค่าไฟล์ E-Attendance ของปีการศึกษา ' + y);
-  var stats = [], daily = [], results = [], stamp = now_(), todayRooms = {}, roomsTotal = 0;
+  var stats = [], daily = [], dress = [], results = [], stamp = now_(), todayRooms = {}, roomsTotal = 0;
 
   sources.forEach(function (src) {
     var r = { year: src.year, term: src.term, rooms: 0, students: 0, days: 0, coverage: 0, error: '' };
@@ -71,14 +72,24 @@ function pullAttendance_(by) {
       var dsh = ss.getSheetByName('_ตรวจระเบียบ');
       if (dsh && dsh.getLastRow() > 1) {
         var dv = dsh.getDataRange().getValues(), dh = dv[0].map(function (x) { return String(x).trim(); });
-        var di = { date: dh.indexOf('date'), sid: dh.indexOf('student_id'), items: dh.indexOf('items') };
+        var col = function (n) { return dh.indexOf(n); };
+        var di = { date: col('date'), sid: col('student_id'), items: col('items'), note: col('note'), by: col('recorded_by'), st: col('status') };
         if (di.date >= 0 && di.sid >= 0) {
+          var seen = {};
           for (var k = 1; k < dv.length; k++) {
-            var did = sid_(dv[k][di.sid]), dd = normDate_(str_(dv[k][di.date])) || str_(dv[k][di.date]);
-            if (!did || !per[did]) continue;
+            if (di.st >= 0 && str_(dv[k][di.st]).toLowerCase() === 'void') continue;
+            var dRaw = dv[k][di.date];
+            var dd = dRaw instanceof Date ? Utilities.formatDate(dRaw, 'Asia/Bangkok', 'yyyy-MM-dd') : (normDate_(str_(dRaw)) || str_(dRaw));
+            var did = sid_(dv[k][di.sid]);
+            if (!did || !per[did] || !dd || dd > today) continue;
+            var items = di.items >= 0 ? str_(dv[k][di.items]) : '';
+            var rec = { year: src.year, term: src.term, date: dd, student_id: did, grade: per[did].grade, room: per[did].room, items: items,
+                        note: di.note >= 0 ? str_(dv[k][di.note]) : '', recorded_by: di.by >= 0 ? str_(dv[k][di.by]) : '' };
+            var sk = dd + '|' + did;
+            if (seen[sk] !== undefined) { dress[seen[sk]] = rec; continue; }   // 1 คน 1 แถวต่อวัน — แถวหลังทับแถวก่อน
+            seen[sk] = dress.length; dress.push(rec);
             per[did].dress++;
             if (dd >= keepFrom) {
-              var items = di.items >= 0 ? str_(dv[k][di.items]) : '';
               var ex = daily.filter(function (d) { return d.date === dd && d.student_id === did; })[0];
               if (ex) ex.dress_items = items;
               else daily.push({ date: dd, student_id: did, grade: per[did].grade, room: per[did].room, status: 'มา', dress_items: items });
@@ -103,6 +114,11 @@ function pullAttendance_(by) {
     });
     writeAll_('AttendanceStats', keepStats.concat(stats));
     writeAll_('AttendanceDaily', daily.sort(function (a, b) { return b.date.localeCompare(a.date); }));
+    var keepDress = rows_('DressChecks').filter(function (d) {
+      return !sources.some(function (src) { return src.year === d.year && src.term === d.term; }) ||
+             results.some(function (rr) { return rr.error && rr.year === d.year && rr.term === d.term; });
+    });
+    writeAll_('DressChecks', keepDress.concat(dress).sort(function (a, b) { return b.date.localeCompare(a.date); }));
     var srcRows = rows_('AttendanceSources');
     var upd = srcRows.filter(function (s) { return sources.some(function (x) { return x._row === s._row; }); }).map(function (s) {
       var rr = results.filter(function (x) { return x.year === s.year && x.term === s.term; })[0];

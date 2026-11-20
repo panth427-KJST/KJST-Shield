@@ -322,12 +322,50 @@ async function pDashboard(){
           <div class="thin"><i style="width:${c.n?Math.max(c.n/maxN*100,2):0}%;background:${c.issue?'#1B3170':'#8E1F1F'}"></i></div></div>`).join('')}
       </div>
     </div>
+    ${dressCard(d.dress, d.today)}
     <div class="card"><h2>นักเรียนที่ต้องติดตาม</h2>${alertTable(d.alerts)}</div>
     <div class="card"><h2>วันนี้: ขาด · ลา · สาย · ราชการ · ผิดระเบียบ</h2>${d.todayList.length?`<div class="tw"><table><tr><th>นักเรียน</th><th>ชั้น</th><th>สถานะ</th><th>ผิดระเบียบ</th></tr>
       ${d.todayList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td>${esc(t.status)}</td><td class="small">${esc(t.dress||'-')}</td></tr>`).join('')}</table></div>`:'<div class="empty">ยังไม่มีรายการผิดปกติวันนี้ (หรือยังไม่ได้ดึงข้อมูลเช็กชื่อ)</div>'}</div>
     <div class="card"><h2>ข้อมูลย้อนหลังรายปีการศึกษา</h2><div id="hist" class="empty">กำลังโหลด…</div></div>`;
   api('history').then(h=>{ if(S.page!=='dashboard'||!$('hist')) return; $('hist').className=''; $('hist').innerHTML = `<div class="tw"><table><tr><th>ปีการศึกษา</th><th class="n">นักเรียน</th><th class="n">อัตรามาเรียน</th><th class="n">ครั้งที่หัก</th><th class="n">ครั้งที่เพิ่ม</th><th class="n">SHIELD</th></tr>
     ${h.map(y=>`<tr><td><b>${esc(y.year)}</b> ${y.current?'<span class="pill lv0">ปัจจุบัน</span>':''}</td><td class="n">${y.students==null?'-':fmt(y.students)}</td><td class="n">${y.attRate==null?'-':y.attRate+'%'}</td><td class="n">${fmt(y.minus)}</td><td class="n">${fmt(y.plus)}</td><td class="n">${y.shield==null?'-':y.shield+'%'}</td></tr>`).join('')}</table></div>`; }).catch(()=>{});
+}
+function hbars(arr, color, unit){
+  if(!arr||!arr.length) return '<div class="empty" style="padding:14px">ไม่มีข้อมูล</div>';
+  const mx=Math.max(1,...arr.map(a=>a.n));
+  return arr.map(a=>`<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;gap:8px;font-size:14px"><span>${esc(a.k)}</span><b>${fmt(a.n)}${unit?' '+unit:''}</b></div>
+    <div class="thin"><i style="width:${Math.max(a.n/mx*100,3)}%;background:${color}"></i></div></div>`).join('');
+}
+function dressCard(x, today){
+  if(!x) return '';
+  const pct = x.total ? Math.round(x.today.students/x.total*1000)/10 : 0;
+  const mx = Math.max(1,...x.trend.map(t=>t.n));
+  const trend = x.trend.length ? `<div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding-top:6px">${x.trend.map(t=>`
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%" title="${thDate(t.date)} · ${t.n} คน">
+        <span class="xs" style="color:var(--navy);font-weight:600">${t.n}</span>
+        <i style="display:block;width:100%;max-width:34px;height:${Math.max(t.n/mx*90,3)}px;border-radius:5px 5px 0 0;background:${t.date===today?'#C9A227':'#1B3170'}"></i>
+        <span class="xs muted" style="white-space:nowrap">${esc(t.date.slice(8))}/${esc(t.date.slice(5,7))}</span></div>`).join('')}</div>` : '<div class="empty" style="padding:14px">ยังไม่มีข้อมูล</div>';
+  return `<div class="card"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline"><h2 style="margin:0">การตรวจระเบียบการแต่งกาย</h2>
+      <span class="small muted">ภาคเรียนที่ ${esc(x.term)} · ข้อมูลจาก KJST Attendance · บันทึกเฉพาะผู้ที่ผิดระเบียบ</span></div>
+    <div class="grid" style="margin:14px 0">
+      <div class="card kpi" style="box-shadow:none;border:1px solid var(--line)"><div class="l">ผิดระเบียบวันนี้</div><div class="v">${fmt(x.today.students)}</div><div class="s">คน · ${pct}% ของนักเรียนในความดูแล</div></div>
+      <div class="card kpi" style="box-shadow:none;border:1px solid var(--line)"><div class="l">สะสมภาคเรียนนี้</div><div class="v">${fmt(x.termTotal)}</div><div class="s">ครั้ง · ${fmt(x.termStudents)} คน · ตรวจ ${fmt(x.checkDays)} วัน</div></div>
+      <div class="card kpi" style="box-shadow:none;border:1px solid var(--line)"><div class="l">ผิดซ้ำถึงเกณฑ์เฝ้าระวัง</div><div class="v">${fmt(x.watch)}</div><div class="s">คน · ผิด ${x.watchN} ครั้งขึ้นไป</div></div>
+    </div>
+    <div class="cols">
+      <div class="card main" style="box-shadow:none;border:1px solid var(--line)"><h3 style="font-size:16px;margin:0 0 6px">จำนวนผู้ผิดระเบียบรายวัน</h3>${trend}</div>
+      <div class="card side" style="box-shadow:none;border:1px solid var(--line)"><h3 style="font-size:16px;margin:0 0 6px">รายการที่ผิด (วันนี้)</h3>${hbars(x.today.items,'#C9A227','ครั้ง')}</div>
+    </div>
+    <div class="cols" style="margin-top:14px">
+      <div class="card main" style="box-shadow:none;border:1px solid var(--line)"><h3 style="font-size:16px;margin:0 0 6px">รายการที่ผิด (สะสมภาคเรียน)</h3>${hbars(x.items,'#1B3170','ครั้ง')}</div>
+      <div class="card side" style="box-shadow:none;border:1px solid var(--line)"><h3 style="font-size:16px;margin:0 0 6px">${x.today.rooms.length?'ห้องที่มีผู้ผิดระเบียบวันนี้':'แยกระดับชั้น (สะสม)'}</h3>${x.today.rooms.length?hbars(x.today.rooms.slice(0,12),'#8E1F1F','คน'):hbars(x.grades,'#1B3170','ครั้ง')}</div>
+    </div>
+    <h3 style="font-size:16px;margin:16px 0 8px">รายชื่อผู้ผิดระเบียบวันนี้</h3>
+    ${x.today.list.length?`<div class="tw" style="max-height:420px;overflow:auto"><table><tr><th>นักเรียน</th><th>ชั้น</th><th>รายการ</th><th>หมายเหตุ</th></tr>
+      ${x.today.list.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td class="small">${esc(t.items)}</td><td class="small">${esc(t.note||'-')}</td></tr>`).join('')}</table></div>`:'<div class="empty">ยังไม่มีบันทึกผู้ผิดระเบียบวันนี้ (ระบบดึงข้อมูลเวลา 08.30 และ 10.00 น.)</div>'}
+    ${x.watchList.length?`<h3 style="font-size:16px;margin:16px 0 8px">ผิดระเบียบซ้ำ ${x.watchN} ครั้งขึ้นไป</h3><div class="tw" style="max-height:320px;overflow:auto"><table><tr><th>นักเรียน</th><th>ชั้น</th><th class="n">จำนวนครั้ง</th></tr>
+      ${x.watchList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td class="n"><b>${t.n}</b></td></tr>`).join('')}</table></div>`:''}
+  </div>`;
 }
 function alertTable(list){
   if(!list.length) return '<div class="empty">ไม่มีนักเรียนที่ต้องติดตาม</div>';
@@ -373,7 +411,7 @@ function report(d, staff){
     <div class="card kpi"><div class="l">คะแนนความประพฤติ</div><div class="v">${d.score}</div><div class="s">ฐาน 100 · เพิ่ม +${d.plus} · หัก −${d.minus}</div></div>
     <div class="card kpi"><div class="l">ผลรับรองความประพฤติ</div><div class="v" style="font-size:20px">${esc(d.cert)}</div><div class="s">${d.certOk?'ออกหนังสือรับรองได้':'ไม่ออกหนังสือรับรอง'}</div></div>
     <div class="card kpi"><div class="l">เวลาเรียน</div><div class="v">${d.rate==null?'-':d.rate+'%'}</div><div class="s">${att}</div></div>
-    <div class="card kpi"><div class="l">ผิดระเบียบแต่งกาย/ทรงผม</div><div class="v">${d.dress}</div><div class="s">ครั้ง</div></div>
+    <div class="card kpi"><div class="l">ผิดระเบียบการแต่งกาย</div><div class="v">${d.dress}</div><div class="s">ครั้ง (ปีการศึกษานี้)</div></div>
   </div>`;
   if(staff && d.phone) h += `<p>ผู้ปกครอง: ${esc(d.parent||'-')} · <a href="tel:${esc(d.phone)}">${esc(d.phone)}</a></p>`;
   if(staff && d.reasons && d.reasons.length) h += `<div class="note" style="margin-bottom:14px"><b>สาเหตุที่ต้องติดตาม</b><br>${d.reasons.map(esc).join('<br>')}<br><b>แนวทางช่วยเหลือ/ส่งต่อ</b><br>${d.advice.map(esc).join('<br>')}</div>`;
@@ -382,6 +420,7 @@ function report(d, staff){
     ${d.logs.map(l=>`<tr style="${l.counted?'':'opacity:.55'}"><td class="small">${thDate(l.date)}</td><td>${esc(l.year+'/'+l.term)}</td><td>${esc(l.item)}${l.status==='void'?' <span class="pill void">ยกเลิก</span>':(l.counted?'':' <span class="xs">(ช่วงชั้นเดิม)</span>')}</td>
       <td class="n"><b style="color:${l.points<0?'#8E1F1F':'#1B3170'}">${l.points>0?'+':''}${l.points}</b></td><td class="small">${esc(l.note)}${staff&&l.void_reason?'<br><i>ยกเลิก: '+esc(l.void_reason)+'</i>':''}${staff&&l.by?'<div class="xs muted">'+esc(l.by)+'</div>':''}</td></tr>`).join('')}</table></div>`:'<p class="muted">ยังไม่มีรายการ</p>');
   h += `<h3 style="font-size:17px;margin:18px 0 8px">การมาเรียน (เฉพาะวันที่ไม่ปกติ ย้อนหลัง)</h3>`+(d.att.length?`<div class="tw"><table><tr><th>วันที่</th><th>สถานะ</th><th>ผิดระเบียบ</th></tr>${d.att.map(a=>`<tr><td class="small">${thDate(a.date)}</td><td>${esc(a.status)}</td><td class="small">${esc(a.dress||'-')}</td></tr>`).join('')}</table></div>`:'<p class="muted">ไม่มีรายการ</p>');
+  if(d.dressLog && d.dressLog.length) h += `<h3 style="font-size:17px;margin:18px 0 8px">ประวัติการตรวจระเบียบการแต่งกาย</h3><div class="tw"><table><tr><th>วันที่</th><th>ปี/ภาค</th><th>รายการที่ผิด</th><th>หมายเหตุ</th></tr>${d.dressLog.map(a=>`<tr><td class="small">${thDate(a.date)}</td><td>${esc(a.year+'/'+a.term)}</td><td class="small">${esc(a.items)}</td><td class="small">${esc(a.note||'-')}${staff&&a.by?'<div class="xs muted">'+esc(a.by)+'</div>':''}</td></tr>`).join('')}</table></div>`;
   if(staff && d.care) h += `<h3 style="font-size:17px;margin:18px 0 8px">การติดตาม เยี่ยมบ้าน ส่งต่อ</h3>`+careTable(d.care,false);
   return h;
 }
