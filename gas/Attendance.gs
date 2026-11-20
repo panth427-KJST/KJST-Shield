@@ -144,6 +144,7 @@ function pullAttendance_(by) {
     setCfg_('ATT_TODAY', JSON.stringify({ date: today, rooms: Object.keys(todayRooms), total: roomsTotal, at: stamp }));
   });
   bumpSummary_();
+  try { pullRequests_(); } catch (e) { Logger.log('pullRequests: ' + e.message); }
   if (by) audit_(by, 'attendancePull', results);
   return results;
 }

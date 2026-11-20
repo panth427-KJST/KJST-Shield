@@ -60,11 +60,18 @@ var ACTIONS = {
     var sc = scope_(u), cm = classMap_(), classes = {};
     Object.keys(cm).forEach(function (g) { var rs = cm[g].filter(function (r) { return inScope_(sc, g, r); }); if (rs.length) classes[g] = rs; });
     return { user: publicUser_(u), school: cfg_('SCHOOL_NAME'), year: year_(), term: term_(), version: VERSION,
-             classes: classes, careClasses: careClassList_(u, cm), careKinds: CARE_KINDS, careStatus: CARE_STATUS };
+             classes: classes, careClasses: careClassList_(u, cm), careKinds: CARE_KINDS, careStatus: CARE_STATUS,
+             pendingRequests: can_(u, 'score.record') ? pendingRequests_() : 0 };
   } },
 
   dashboard:    { perm: 'dashboard.view', fn: function (u) { return dashboard_(u); } },
   myClass:      { perm: 'dashboard.view', fn: function (u, p) { return myClass_(u, p); } },
+  studentSave:  { perm: 'student.edit', fn: function (u, p) { return studentSave_(u, p); } },
+  studentTypeBulk: { perm: 'student.edit', fn: function (u, p) { return studentTypeBulk_(u, p); } },
+  measures:     { perm: null, fn: function () { return measures_(); } },
+  proposeScore: { perm: 'score.propose', fn: function (u, p) { return proposeScore_(u, p); } },
+  requests:     { perm: null, fn: function (u, p) { if (!can_(u, 'score.record') && !can_(u, 'score.propose')) throw err_('PERM', 'ไม่มีสิทธิ์ใช้งานส่วนนี้'); return requestsList_(u, p); } },
+  decideRequest:{ perm: 'score.record', fn: function (u, p) { return decideRequest_(u, p); } },
   recAttGet:    { perm: 'records.edit', fn: function (u, p) { return recAttGet_(p); } },
   recAttSave:   { perm: 'records.edit', fn: function (u, p) { return recAttSave_(u, p); } },
   recDressGet:  { perm: 'records.edit', fn: function (u, p) { return recDressGet_(p); } },
@@ -81,7 +88,7 @@ var ACTIONS = {
     return studentDetail_(id, { staff: true, contact: contact, care: contact });
   } },
 
-  scoreItems:   { perm: 'score.record', fn: function () { return scoreItems_(false); } },
+  scoreItems:   { perm: null, fn: function () { return scoreItems_(false); } },
   addScore:     { perm: 'score.record', fn: function (u, p) { return addScore_(u, p); } },
   voidScore:    { perm: 'score.void', fn: function (u, p) { return voidScore_(u, p); } },
   recentScores: { perm: 'score.record', fn: function (u, p) { return recentScores_(u, p); } },

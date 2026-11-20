@@ -26,7 +26,11 @@ function syncStudents_(by) {
       guardian_name: r['ชื่อ-สกุลผู้ปกครอง'], guardian_relation: r['ผู้ปกครองเป็น'], synced_at: stamp
     };
     counts[o.status] = (counts[o.status] || 0) + 1;
-    if (cur[id]) upd.push(Object.assign({}, cur[id], o)); else add.push(o);
+    if (cur[id]) {   // ช่องที่แอดมินแก้เองใน Shield (edited_fields) ไม่ถูกเขียนทับ
+      splitList_(cur[id].edited_fields).forEach(function (f) { delete o[f]; });
+      if (!cur[id].student_type) o.student_type = STUDENT_TYPES[0];
+      upd.push(Object.assign({}, cur[id], o));
+    } else { o.student_type = STUDENT_TYPES[0]; add.push(o); }
   });
   var missing = Object.keys(cur).filter(function (k) { return !seen[k]; });
   missing.forEach(function (k) { if (cur[k].status !== 'ไม่อยู่ในทะเบียนกลาง') upd.push(Object.assign({}, cur[k], { status: 'ไม่อยู่ในทะเบียนกลาง', synced_at: stamp })); });
@@ -135,4 +139,54 @@ function classMap_() {
     out[g] = Object.keys(m[g]).sort(function (a, b) { return Number(a) - Number(b); });
   });
   return out;
+}
+
+
+/* ===== แก้ไขข้อมูลนักเรียน (แอดมิน): ผู้ปกครอง · เบอร์โทร · ประเภทนักเรียน — แก้ใน Shield เท่านั้น ===== */
+var STUDENT_EDIT_FIELDS = { guardian_name: 'ชื่อผู้ปกครอง', guardian_relation: 'ความเกี่ยวข้อง', parent_phone: 'เบอร์โทรผู้ปกครอง', student_type: 'ประเภทนักเรียน' };
+var SYNCED_FIELDS = ['guardian_name', 'guardian_relation'];   // มาจากทะเบียนกลาง → ต้องกันไม่ให้ซิงก์ทับ
+
+function studentSave_(u, p) {
+  var id = sid_(p.id), reason = String(p.reason || '').trim();
+  var cur = rows_('Students').filter(function (r) { return r.student_id === id; })[0];
+  if (!cur) throw err_('NOTFOUND', 'ไม่พบนักเรียน');
+  var nw = {}, logs = [], edited = splitList_(cur.edited_fields);
+  Object.keys(STUDENT_EDIT_FIELDS).forEach(function (f) {
+    if (p[f] === undefined) return;
+    var v = String(p[f] || '').trim().slice(0, 120);
+    if (f === 'parent_phone') { v = v.replace(/[^\d,\s-]/g, ''); }
+    if (f === 'student_type' && STUDENT_TYPES.indexOf(v) < 0) throw err_('INPUT', 'ประเภทนักเรียนไม่ถูกต้อง');
+    var old = str_(cur[f]) || (f === 'student_type' ? STUDENT_TYPES[0] : '');
+    if (old === v) return;
+    nw[f] = v;
+    if (SYNCED_FIELDS.indexOf(f) >= 0 && edited.indexOf(f) < 0) edited.push(f);
+    logs.push({ student_id: id, student_name: fullName_(cur), field: STUDENT_EDIT_FIELDS[f], old_value: old, new_value: v });
+  });
+  if (!logs.length) return { changed: 0 };
+  nw.edited_fields = edited.join(','); nw.edited_by = by_(u); nw.edited_at = now_();
+  lock_(function () { updateRows_('Students', [Object.assign({}, cur, nw)]); });
+  editLog_(u, { kind: 'ประวัตินักเรียน', date: today_(), room: cls_(cur.grade, cur.room), reason: reason || 'แก้ไขข้อมูลนักเรียน', batch_id: newBatch_() }, logs);
+  bumpSummary_();
+  return { changed: logs.length };
+}
+
+/** ตั้งประเภทนักเรียนหลายคนพร้อมกัน */
+function studentTypeBulk_(u, p) {
+  var type = String(p.type || ''), ids = {};
+  if (STUDENT_TYPES.indexOf(type) < 0) throw err_('INPUT', 'ประเภทนักเรียนไม่ถูกต้อง');
+  [].concat(p.ids || []).forEach(function (x) { var i = sid_(x); if (i) ids[i] = 1; });
+  if (!Object.keys(ids).length) throw err_('INPUT', 'กรุณาเลือกนักเรียน');
+  var upd = [], logs = [], stamp = now_();
+  rows_('Students').forEach(function (r) {
+    if (!ids[r.student_id]) return;
+    var old = r.student_type || STUDENT_TYPES[0];
+    if (old === type) return;
+    upd.push(Object.assign({}, r, { student_type: type, edited_by: by_(u), edited_at: stamp }));
+    logs.push({ student_id: r.student_id, student_name: fullName_(r), field: 'ประเภทนักเรียน', old_value: old, new_value: type, room: cls_(r.grade, r.room) });
+  });
+  if (!upd.length) return { changed: 0 };
+  lock_(function () { updateRows_('Students', upd); });
+  editLog_(u, { kind: 'ประวัตินักเรียน', date: today_(), reason: String(p.reason || '').trim() || 'ตั้งประเภทนักเรียน', batch_id: newBatch_() }, logs);
+  bumpSummary_();
+  return { changed: upd.length };
 }

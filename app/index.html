@@ -81,6 +81,12 @@ nav.menu .in{max-width:1280px;margin:0 auto;padding:0 12px;display:flex;gap:2px;
 nav.menu button{flex:0 0 auto;background:transparent;border:0;color:#D3DAEC;padding:12px 16px;margin-top:6px;border-radius:8px 8px 0 0;cursor:pointer;font-size:15px}
 nav.menu button.on{background:var(--gold2);color:var(--navy);font-weight:700}
 main{max-width:1280px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-direction:column;gap:18px}
+.meas{background:#FFF8EC;border:1px solid #EAD9A6;border-radius:12px;padding:10px 12px;margin:10px 0}
+.mchk{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid var(--fline);border-radius:999px;background:#fff;font-size:14px;cursor:pointer}
+.mchk input{width:18px;min-height:18px;margin:0}
+.mpill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:600;background:#F7E6DA;color:#7E3A1C;margin:2px 4px 2px 0}
+.nbadge{display:inline-block;min-width:22px;padding:1px 7px;border-radius:999px;background:#C0392B;color:#fff;font-size:12px;font-weight:700;margin-left:4px}
+.reqcard{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0;background:#fff}
 .mc-tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line);margin-top:14px}
 .mc-tabs button{min-height:46px;padding:0 18px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font-size:16px;font-weight:500;margin-bottom:-2px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
 .mc-tabs button.on{border-bottom-color:var(--gold);color:var(--navy);font-weight:600}
@@ -286,10 +292,14 @@ async function enter(){
   $('stu').hidden = true; $('app').hidden = false;
   $('ybadge').textContent = 'ปีการศึกษา '+d.year+' · ภาค '+d.term;
   $('whoName').textContent = d.user.name; $('whoRole').textContent = d.user.roleNames.join(' · ');
-  $('nav').innerHTML = PAGES.filter(p=>p.show()).map(p=>`<button type="button" data-page="${p.id}">${p.label}</button>`).join('');
+  drawNav();
   go(PAGES.find(p=>p.show()).id);
 }
 
+function drawNav(){
+  const n=S.init.pendingRequests||0;
+  $('nav').innerHTML = PAGES.filter(p=>p.show()).map(p=>`<button type="button" data-page="${p.id}" class="${S.page===p.id?'on':''}">${p.label}${p.id==='scores'&&n?` <span class="nbadge" title="รอยืนยันตัดคะแนน">${n}</span>`:''}</button>`).join('');
+}
 /* ===== PAGES ===== */
 const PAGES = [
   { id:'dashboard', label:'แดชบอร์ด', show:()=>can('dashboard.view'), render:pDashboard },
@@ -341,6 +351,7 @@ async function pDashboard(){
           <div class="thin"><i style="width:${c.n?Math.max(c.n/maxN*100,2):0}%;background:${c.issue?'#1B3170':'#8E1F1F'}"></i></div></div>`).join('')}
       </div>
     </div>
+    ${measDashCard(d.measures)}
     ${attTodayCard(d.attToday)}
     ${dressCard(d.dress, d.today)}
     ${d.hasMyClass?`<div class="note">รายชื่อนักเรียนที่ต้องติดตาม ขาด ลา สาย และผิดระเบียบ ดูได้ที่เมนู <a href="#" data-goto="myclass"><b>ชั้นเรียนของฉัน</b></a></div>`:''}
@@ -384,6 +395,14 @@ function dressCard(x, today){
     ${x.watchList&&x.watchList.length?`<h3 style="font-size:16px;margin:16px 0 8px">ผิดระเบียบซ้ำ ${x.watchN} ครั้งขึ้นไป</h3><div class="tw" style="max-height:320px;overflow:auto"><table><tr><th>นักเรียน</th><th>ชั้น</th><th class="n">จำนวนครั้ง</th></tr>
       ${x.watchList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}</td><td>${esc(t.cls)}</td><td class="n"><b>${t.n}</b></td></tr>`).join('')}</table></div>`:''}
   </div>`;
+}
+function measDashCard(m){
+  if(!m) return '';
+  const names=Object.keys(m.byName||{}).sort();
+  return `<div class="card"><h2>มาตรการปรับพฤติกรรม</h2><div class="grid">
+    <div class="card kpi" style="border:1px solid var(--line)"><div class="l">อยู่ระหว่างปรับเปลี่ยนพฤติกรรม</div><div class="v" style="color:#7E3A1C">${fmt(m.now)}</div><div class="s">${names.length?names.map(n=>esc(n)+' '+m.byName[n]).join(' · '):'คน'}</div></div>
+    <div class="card kpi" style="border:1px solid var(--line)"><div class="l">ทำทัณฑ์บนแล้ว</div><div class="v" style="color:#8E1F1F">${fmt(m.prob)}</div><div class="s">คน · ปีการศึกษานี้</div></div>
+    <div class="card kpi" style="border:1px solid var(--line)"><div class="l">ทำบันทึกสัญญาพฤติกรรม</div><div class="v">${fmt(m.contract)}</div><div class="s">คน · ปีการศึกษานี้</div></div></div></div>`;
 }
 function hasMyClass(){ const u=S.init.user; return u.roles.some(r=>['executive','score_admin','sysadmin'].includes(r)) || (u.roles.includes('head')&&u.grades&&u.grades.length) || (u.roles.includes('advisor')&&u.rooms&&u.rooms.length); }
 function attTodayCard(rows){
@@ -436,6 +455,7 @@ async function pMyClass(cls, date){
       ${btns}
     </div>
     ${mcTabsHtml('view')}
+    ${can('score.propose')?`<div class="row" style="margin-top:12px;justify-content:space-between;align-items:center"><span class="small muted">พบพฤติกรรมที่ต้องตัดคะแนน? เสนอให้แอดมินตรวจสอบและอนุมัติ</span><button type="button" class="btn red" data-propose="1">เสนอตัดคะแนน</button></div>`:''}
     <div class="card" style="margin-top:14px"><div class="row" style="align-items:flex-end">
       <label class="f" style="flex:1 1 200px">ชั้นเรียน<select id="mcCls">${opt}</select></label>
       <label class="f" style="flex:1 1 200px">วันที่<input type="date" id="mcDate" value="${d.date}" max="${d.today}"></label>
@@ -483,7 +503,12 @@ async function pMyClass(cls, date){
       <div class="card main"><h2>รายการที่ผิดระเบียบ (สะสมภาคเรียน)</h2>${hbars(d.dress.items,'#1B3170','ครั้ง')}</div>
       <div class="card side"><h2>ผิดระเบียบซ้ำ ${d.dress.watchN} ครั้งขึ้นไป</h2>${d.dress.watchList.length?`<div class="tw" style="max-height:320px;overflow:auto"><table><tr><th>นักเรียน</th><th class="n">ครั้ง</th></tr>${d.dress.watchList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}<div class="xs muted">${esc(t.cls)}</div></td><td class="n"><b>${t.n}</b></td></tr>`).join('')}</table></div>`:'<div class="empty">ไม่มี</div>'}</div>
     </div>
+    ${can('score.propose')||can('score.record')?'<div class="card"><h2>คำขอตัดคะแนน (ห้อง/ระดับที่ดูแล)</h2><div id="mcReq" class="empty">กำลังโหลด…</div></div>':''}
+    <div class="card"><h2>มาตรการปรับพฤติกรรม (ปีการศึกษานี้)</h2>${d.measures&&d.measures.length?`<div class="tw" style="max-height:360px;overflow:auto"><table><tr><th>นักเรียน</th><th>ชั้น</th><th>กำลังดำเนินการ</th><th class="n">ทัณฑ์บน</th><th class="n">สัญญาพฤติกรรม</th></tr>
+      ${d.measures.map(m=>`<tr class="click" data-sid="${esc(m.id)}"><td>${esc(m.name)}</td><td>${esc(m.cls)}</td><td>${m.now.map(x=>`<span class="mpill">${esc(x.name)} ${thDate(x.start)}–${thDate(x.end)}</span>`).join('')||'-'}</td><td class="n">${m.prob||'-'}</td><td class="n">${m.contract||'-'}</td></tr>`).join('')}</table></div>`:'<div class="empty">ไม่มีนักเรียนที่อยู่ในมาตรการ</div>'}</div>
     <div class="card"><h2>นักเรียนที่ต้องติดตาม</h2>${alertTable(d.alerts)}</div>`;
+  if($('mcReq')) api('requests',{ status:'all' }).then(r=>{ if(!$('mcReq')) return; const L=r.list.filter(x=>d.sel==='all'||x.cls===d.sel||x.cls.split('/')[0]===d.sel).slice(0,50); $('mcReq').className='';
+    $('mcReq').innerHTML = L.length?`<div class="tw" style="max-height:340px;overflow:auto"><table><tr><th>วันที่เสนอ</th><th>นักเรียน</th><th>ประเภท</th><th>รายละเอียด</th><th>สถานะ</th></tr>${L.map(x=>`<tr class="click" data-sid="${esc(x.student_id)}"><td class="small">${esc(String(x.proposed_at).slice(0,10))}</td><td>${esc(x.name)}<div class="xs muted">${esc(x.cls)}</div></td><td><span class="pill ${KIND_PILL[x.kind]||'lv0'}">${esc(x.kind)}</span></td><td class="small">${esc(x.evidence)}${x.status==='approved'?`<div class="xs">หัก: ${esc(x.item_name)}${x.measures.length?' · '+esc(x.measures.join(', ')):''}</div>`:''}${x.status==='rejected'&&x.decide_note?`<div class="xs muted">${esc(x.decide_note)}</div>`:''}</td><td><span class="pill ${REQ_ST[x.status][1]}">${REQ_ST[x.status][0]}</span></td></tr>`).join('')}</table></div>`:'<div class="empty">ยังไม่มีคำขอ</div>'; }).catch(e=>{ if($('mcReq')) $('mcReq').textContent=e.message; });
   $('mcCls').onchange=e=>pMyClass(e.target.value, S.mcDate);
   $('mcDate').onchange=e=>{ if(e.target.value) pMyClass(S.mcCls, e.target.value); };
   $('mcPrev').onclick=()=>pMyClass(S.mcCls, addDay(d.date,-1));
@@ -643,56 +668,101 @@ function bindClassFilter(gid, rid, cb){
   const fill=()=>{ const g=$(gid).value, rs=g?(S.init.classes[g]||[]):[]; $(rid).innerHTML='<option value="">ทุกห้อง</option>'+rs.map(r=>`<option value="${r}">ห้อง ${r}</option>`).join(''); };
   $(gid).onchange=()=>{ fill(); cb(); }; $(rid).onchange=cb; fill();
 }
+const TYPES=['ไป-กลับ','พักนอนประจำ'];
+const typePill = t => (t||TYPES[0])===TYPES[1] ? '<span class="pill lv1">พักนอนประจำ</span>' : '<span class="pill lv0">ไป-กลับ</span>';
 async function pStudents(){
   const list = await run(ensureStudents(true)); if(!list) return;
+  const ed = can('student.edit'); S.stuSel={};
   $('page').innerHTML = ptitle('ข้อมูลนักเรียนและการติดตาม', 'แตะที่แถวเพื่อดูรายละเอียดรายคน')+
     `<div class="card"><div class="row" style="margin-bottom:14px">${classFilter('sG','sR',true)}
       <label class="f">กลุ่ม<select id="sL"><option value="">ทั้งหมด</option>${LV.map((l,i)=>`<option value="${i}">${l}</option>`).join('')}</select></label>
-      <label class="f" style="flex:2 1 200px">ค้นหา<input id="sQ" placeholder="ชื่อ หรือ รหัสนักเรียน"></label></div><div id="sT"></div></div>`;
+      <label class="f">ประเภทนักเรียน<select id="sY"><option value="">ทั้งหมด</option>${TYPES.map(t=>`<option>${t}</option>`).join('')}</select></label>
+      <label class="f" style="flex:2 1 200px">ค้นหา<input id="sQ" placeholder="ชื่อ หรือ รหัสนักเรียน"></label></div>
+      ${ed?`<div class="row" id="sBulk" style="margin-bottom:12px;align-items:center"><span class="small">เลือกแล้ว <b id="sN">0</b> คน</span>
+        <button type="button" class="btn sm" id="sAll">เลือกทั้งหมดที่แสดง</button><button type="button" class="btn sm" id="sNone">ล้างที่เลือก</button>
+        <button type="button" class="btn sm gold" data-settype="พักนอนประจำ">ตั้งเป็น พักนอนประจำ</button><button type="button" class="btn sm" data-settype="ไป-กลับ">ตั้งเป็น ไป-กลับ</button></div>`:''}
+      <div id="sT"></div></div>`;
+  let cur=[];
   const draw=()=>{
-    const g=$('sG').value, r=$('sR').value, lv=$('sL').value, q=$('sQ').value.trim().toLowerCase();
-    const f = S.stu.filter(s=>(!g||s.g===g)&&(!r||s.r===r)&&(lv===''||String(s.lv)===lv)&&(!q||(s.id+' '+s.name).toLowerCase().includes(q)));
-    $('sT').innerHTML = `<div class="xs muted" style="margin-bottom:6px">พบ ${fmt(f.length)} คน</div><div class="tw"><table><tr><th>รหัส</th><th>ชื่อ-สกุล</th><th>ชั้น</th><th class="n">คะแนน</th><th class="n">มาเรียน</th><th>ผลรับรอง</th><th>สถานะ</th></tr>
-      ${f.slice(0,600).map(s=>`<tr class="click" data-sid="${esc(s.id)}"><td>${esc(s.id)}</td><td>${esc(s.name)}</td><td>${esc(s.g+'/'+s.r)}</td><td class="n"><b>${s.score}</b></td><td class="n">${s.rate==null?'-':s.rate+'%'}</td><td>${certPill(s.cert,s.certOk)}</td><td>${lvPill(s.lv)}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">ไม่พบนักเรียน</td></tr>'}</table></div>`;
+    const g=$('sG').value, r=$('sR').value, lv=$('sL').value, ty=$('sY').value, q=$('sQ').value.trim().toLowerCase();
+    cur = S.stu.filter(s=>(!g||s.g===g)&&(!r||s.r===r)&&(lv===''||String(s.lv)===lv)&&(!ty||(s.type||TYPES[0])===ty)&&(!q||(s.id+' '+s.name).toLowerCase().includes(q)));
+    const nb=TYPES.map(t=>t+' '+fmt(cur.filter(s=>(s.type||TYPES[0])===t).length)).join(' · ');
+    $('sT').innerHTML = `<div class="xs muted" style="margin-bottom:6px">พบ ${fmt(cur.length)} คน (${nb})</div><div class="tw"><table><tr>${ed?'<th></th>':''}<th>รหัส</th><th>ชื่อ-สกุล</th><th>ชั้น</th><th>ประเภท</th><th class="n">คะแนน</th><th class="n">มาเรียน</th><th>ผลรับรอง</th><th>สถานะ</th></tr>
+      ${cur.slice(0,600).map(s=>`<tr class="click" data-sid="${esc(s.id)}">${ed?`<td><input type="checkbox" data-pick="${esc(s.id)}" ${S.stuSel[s.id]?'checked':''} aria-label="เลือก ${esc(s.name)}" style="width:20px;min-height:20px"></td>`:''}<td>${esc(s.id)}</td><td>${esc(s.name)}</td><td>${esc(s.g+'/'+s.r)}</td><td>${typePill(s.type)}</td><td class="n"><b>${s.score}</b></td><td class="n">${s.rate==null?'-':s.rate+'%'}</td><td>${certPill(s.cert,s.certOk)}</td><td>${lvPill(s.lv)}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">ไม่พบนักเรียน</td></tr>'}</table></div>`;
+    if($('sN')) $('sN').textContent=Object.keys(S.stuSel).length;
   };
-  bindClassFilter('sG','sR',draw); $('sL').onchange=draw; $('sQ').oninput=draw; draw();
+  bindClassFilter('sG','sR',draw); $('sL').onchange=draw; $('sY').onchange=draw; $('sQ').oninput=draw; draw();
+  if(ed){
+    $('sT').addEventListener('click', e=>{ const c=e.target.closest('[data-pick]'); if(!c) return; e.stopPropagation(); if(c.checked) S.stuSel[c.dataset.pick]=1; else delete S.stuSel[c.dataset.pick]; $('sN').textContent=Object.keys(S.stuSel).length; }, true);
+    $('sAll').onclick=()=>{ cur.slice(0,600).forEach(s=>S.stuSel[s.id]=1); draw(); };
+    $('sNone').onclick=()=>{ S.stuSel={}; draw(); };
+    document.querySelectorAll('[data-settype]').forEach(b=>b.onclick=async()=>{
+      const ids=Object.keys(S.stuSel), t=b.dataset.settype; if(!ids.length) return toast('กรุณาเลือกนักเรียน', true);
+      if(!confirm('ตั้งประเภท "'+t+'" ให้นักเรียน '+ids.length+' คน?')) return;
+      const r=await run(api('studentTypeBulk',{ ids, type:t })); if(r){ toast('เปลี่ยนประเภทแล้ว '+r.changed+' คน'); S.stuSel={}; await ensureStudents(true); draw(); }
+    });
+  }
+}
+function editStudent(d){
+  modal(`<h2 style="font-size:20px">แก้ไขข้อมูลนักเรียน</h2><p class="small muted">${esc(d.name)} · ${esc(d.id)} · ${esc(d.g+'/'+d.r)}</p>
+    <label class="f" style="margin-top:10px">ประเภทนักเรียน<select id="eT">${TYPES.map(t=>`<option${(d.type||TYPES[0])===t?' selected':''}>${t}</option>`).join('')}</select></label>
+    <label class="f" style="margin-top:10px">ชื่อ-สกุลผู้ปกครอง<input id="eG" value="${esc(d.guardian_name||'')}"></label>
+    <label class="f" style="margin-top:10px">ความเกี่ยวข้อง<input id="eR" value="${esc(d.guardian_relation||'')}" placeholder="เช่น บิดา มารดา"></label>
+    <label class="f" style="margin-top:10px">เบอร์โทรผู้ปกครอง<input id="eP" value="${esc(d.phone||'')}" inputmode="tel"></label>
+    <label class="f" style="margin-top:10px">เหตุผลการแก้ไข<input id="eW" placeholder="เช่น ผู้ปกครองแจ้งเปลี่ยนเบอร์"></label>
+    <p class="xs muted" style="margin-top:8px">แก้ใน KJST Shield เท่านั้น · การซิงก์จากฐานข้อมูลนักเรียนกลางจะไม่เขียนทับช่องที่แก้ · บันทึกประวัติการแก้ไขทุกครั้ง${d.editedAt?' · แก้ล่าสุด '+esc(d.editedAt)+' โดย '+esc(d.editedBy):''}</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-close>ยกเลิก</button><button type="button" class="btn pri" id="eDo">บันทึก</button></div>`, true);
+  $('eDo').onclick=async()=>{ const r=await run(api('studentSave',{ id:d.id, student_type:$('eT').value, guardian_name:$('eG').value, guardian_relation:$('eR').value, parent_phone:$('eP').value, reason:$('eW').value }));
+    if(r){ toast(r.changed?'บันทึกแล้ว '+r.changed+' รายการ':'ไม่มีการเปลี่ยนแปลง'); S.stu=null; openStudent(d.id); } };
 }
 async function openStudent(id){
   const d = await run(api('student',{ id })); if(!d) return;
   modal(`<div style="text-align:right" class="no-print"><button type="button" class="btn sm" data-close>ปิด</button></div>`+report(d,true));
+  if($('stuEdit')) $('stuEdit').onclick=()=>editStudent(d);
 }
 function report(d, staff){
   const att = d.days ? `มา ${d.P} · ราชการ ${d.O} · สาย ${d.L} · ลา ${d.LV} · ขาด ${d.A}` : 'ยังไม่มีข้อมูลเช็กชื่อ';
   let h = `<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start">
-    <div><h2 style="font-size:22px">${esc(d.name)}</h2><div class="muted small">รหัส ${esc(d.id)} · ชั้น ${esc(d.g+'/'+d.r)} · ช่วงชั้น ${esc(d.stage)} · ปีการศึกษา ${esc(d.year)}/${esc(d.term)}</div></div>
-    <div>${staff&&d.lv!=null?lvPill(d.lv):''}</div></div>
+    <div><h2 style="font-size:22px">${esc(d.name)} ${typePill(d.type)}</h2><div class="muted small">รหัส ${esc(d.id)} · ชั้น ${esc(d.g+'/'+d.r)} · ช่วงชั้น ${esc(d.stage)} · ปีการศึกษา ${esc(d.year)}/${esc(d.term)}</div></div>
+    <div style="display:flex;gap:8px;align-items:center">${staff&&d.lv!=null?lvPill(d.lv):''}${staff&&can('student.edit')?'<button type="button" class="btn sm no-print" id="stuEdit">แก้ไขข้อมูล</button>':''}</div></div>
   <div class="grid" style="margin:16px 0">
     <div class="card kpi"><div class="l">คะแนนความประพฤติ</div><div class="v">${d.score}</div><div class="s">ฐาน 100 · เพิ่ม +${d.plus} · หัก −${d.minus}</div></div>
     <div class="card kpi"><div class="l">ผลรับรองความประพฤติ</div><div class="v" style="font-size:20px">${esc(d.cert)}</div><div class="s">${d.certOk?'ออกหนังสือรับรองได้':'ไม่ออกหนังสือรับรอง'}</div></div>
     <div class="card kpi"><div class="l">เวลาเรียน</div><div class="v">${d.rate==null?'-':d.rate+'%'}</div><div class="s">${att}</div></div>
     <div class="card kpi"><div class="l">ผิดระเบียบการแต่งกาย</div><div class="v">${d.dress}</div><div class="s">ครั้ง (ปีการศึกษานี้)</div></div>
   </div>`;
+  const mNow=(d.measureList||[]).filter(m=>m.state==='กำลังดำเนินการ'||m.state==='ยังไม่เริ่ม'), mProb=(d.measureList||[]).filter(m=>m.probation&&m.year===d.year);
+  if(mNow.length||mProb.length) h += `<div class="note" style="margin-bottom:12px;background:#FBEDE4;border-color:#E9C2A6">${mNow.map(m=>`<div><b>${m.state==='ยังไม่เริ่ม'?'จะเริ่ม':'อยู่ระหว่าง'}${esc(m.name)}</b> ${thDate(m.start)} – ${thDate(m.end)}</div>`).join('')}${mProb.length?`<div><b>ทำทัณฑ์บนแล้ว ${mProb.length} ครั้ง</b> (ปีการศึกษา ${esc(d.year)}) ล่าสุด ${thDate(mProb[0].date)}</div>`:''}</div>`;
   if(staff && d.phone) h += `<p>ผู้ปกครอง: ${esc(d.parent||'-')} · <a href="tel:${esc(d.phone)}">${esc(d.phone)}</a></p>`;
   if(staff && d.reasons && d.reasons.length) h += `<div class="note" style="margin-bottom:14px"><b>สาเหตุที่ต้องติดตาม</b><br>${d.reasons.map(esc).join('<br>')}<br><b>แนวทางช่วยเหลือ/ส่งต่อ</b><br>${d.advice.map(esc).join('<br>')}</div>`;
   h += `<p class="xs muted">คะแนนสะสมตลอดช่วงชั้น (${esc(d.stage)}) และเริ่ม 100 ใหม่เมื่อขึ้น ม.4 · คะแนนเกิน 100 ได้จากคะแนนความดี</p>`;
   h += `<h3 style="font-size:17px;margin:14px 0 8px">ประวัติคะแนนความประพฤติ</h3>`+(d.logs.length?`<div class="tw"><table><tr><th>วันที่</th><th>ปี/ภาค</th><th>รายการ</th><th class="n">คะแนน</th><th>หมายเหตุ</th></tr>
     ${d.logs.map(l=>`<tr style="${l.counted?'':'opacity:.55'}"><td class="small">${thDate(l.date)}</td><td>${esc(l.year+'/'+l.term)}</td><td>${esc(l.item)}${l.status==='void'?' <span class="pill void">ยกเลิก</span>':(l.counted?'':' <span class="xs">(ช่วงชั้นเดิม)</span>')}</td>
-      <td class="n"><b style="color:${l.points<0?'#8E1F1F':'#1B3170'}">${l.points>0?'+':''}${l.points}</b></td><td class="small">${esc(l.note)}${staff&&l.void_reason?'<br><i>ยกเลิก: '+esc(l.void_reason)+'</i>':''}${staff&&l.by?'<div class="xs muted">'+esc(l.by)+'</div>':''}</td></tr>`).join('')}</table></div>`:'<p class="muted">ยังไม่มีรายการ</p>');
+      <td class="n"><b style="color:${l.points<0?'#8E1F1F':'#1B3170'}">${l.points>0?'+':''}${l.points}</b></td><td class="small">${l.measures?`<div style="color:#7E3A1C;font-weight:600">มาตรการ: ${esc(l.measures)}</div>`:''}${esc(l.note)}${staff&&l.void_reason?'<br><i>ยกเลิก: '+esc(l.void_reason)+'</i>':''}${staff&&l.by?'<div class="xs muted">'+esc(l.by)+'</div>':''}</td></tr>`).join('')}</table></div>`:'<p class="muted">ยังไม่มีรายการ</p>');
   h += `<h3 style="font-size:17px;margin:18px 0 8px">การมาเรียน (เฉพาะวันที่ไม่ปกติ ย้อนหลัง)</h3>`+(d.att.length?`<div class="tw"><table><tr><th>วันที่</th><th>สถานะ</th><th>ผิดระเบียบ</th></tr>${d.att.map(a=>`<tr><td class="small">${thDate(a.date)}</td><td>${esc(a.status)}</td><td class="small">${esc(a.dress||'-')}</td></tr>`).join('')}</table></div>`:'<p class="muted">ไม่มีรายการ</p>');
+  if(d.measureList && d.measureList.length) h += `<h3 style="font-size:17px;margin:18px 0 8px">มาตรการปรับพฤติกรรม</h3><div class="tw"><table><tr><th>วันที่</th><th>มาตรการ</th><th>ช่วงเวลา</th><th>สถานะ</th></tr>${d.measureList.map(m=>`<tr><td class="small">${thDate(m.date)}</td><td>${esc(m.name)}</td><td class="small">${m.end?thDate(m.start)+' – '+thDate(m.end):'-'}</td><td class="small">${esc(m.state)}</td></tr>`).join('')}</table></div>`;
   if(d.dressLog && d.dressLog.length) h += `<h3 style="font-size:17px;margin:18px 0 8px">ประวัติการตรวจระเบียบการแต่งกาย</h3><div class="tw"><table><tr><th>วันที่</th><th>ปี/ภาค</th><th>รายการที่ผิด</th><th>หมายเหตุ</th></tr>${d.dressLog.map(a=>`<tr><td class="small">${thDate(a.date)}</td><td>${esc(a.year+'/'+a.term)}</td><td class="small">${esc(a.items)}</td><td class="small">${esc(a.note||'-')}${staff&&a.by?'<div class="xs muted">'+esc(a.by)+'</div>':''}</td></tr>`).join('')}</table></div>`;
   if(staff && d.care) h += `<h3 style="font-size:17px;margin:18px 0 8px">การติดตาม เยี่ยมบ้าน ส่งต่อ</h3>`+careTable(d.care,false);
   return h;
 }
 
 /* ----- scores ----- */
+function scTabs(cur){
+  const n=S.init.pendingRequests||0;
+  return `<div class="mc-tabs" role="tablist" style="margin:0 0 14px"><button type="button" role="tab" data-sctab="rec" class="${cur==='rec'?'on':''}">บันทึกคะแนน</button>
+    <button type="button" role="tab" data-sctab="req" class="${cur==='req'?'on':''}">รอยืนยันตัดคะแนน${n?` <span class="nbadge">${n}</span>`:''}</button>
+    <button type="button" role="tab" data-sctab="hist" class="${cur==='hist'?'on':''}">ประวัติคำขอ</button></div>`;
+}
 async function pScores(){
-  const [items, list] = await run(Promise.all([S.items?Promise.resolve(S.items):api('scoreItems'), ensureStudents()])) || [];
-  if(!items) return; S.items = items; S.pick = {};
-  $('page').innerHTML = ptitle('บันทึกคะแนนความประพฤติ', 'คะแนนของแต่ละรายการกำหนดโดยผู้ดูแลระบบ')+
+  if(S.scTab==='req'||S.scTab==='hist') return pRequests(S.scTab==='req'?'pending':'all');
+  const [items, list, ms] = await run(Promise.all([S.items?Promise.resolve(S.items):api('scoreItems'), ensureStudents(), S.measures?Promise.resolve(S.measures):api('measures')])) || [];
+  if(!items) return; S.items = items; S.measures = ms; S.pick = {};
+  $('page').innerHTML = ptitle('บันทึกคะแนนความประพฤติ', 'คะแนนของแต่ละรายการกำหนดโดยผู้ดูแลระบบ')+scTabs('rec')+
   `<div class="cols"><div class="card main">
     <div class="seg" style="max-width:420px;margin-bottom:14px"><button type="button" data-type="หัก" class="${S.type==='หัก'?'on':''}">หักคะแนน</button><button type="button" data-type="เพิ่ม" class="${S.type==='เพิ่ม'?'on':''}">เพิ่มคะแนน</button></div>
     <div class="row"><label class="f" style="flex:3 1 260px">รายการ<select id="bItem"></select></label><label class="f">วันที่<input type="date" id="bDate" value="${iso()}" max="${iso()}"></label></div>
     <div id="bPts" style="margin:12px 0"></div>
+    <div id="bMeas"></div>
     <h2 style="font-size:16px;margin:16px 0 8px">เลือกนักเรียน</h2>
     <div class="row" style="margin-bottom:8px">${classFilter('bG','bR',true)}<label class="f" style="flex:2 1 200px">ค้นหา<input id="bQ" placeholder="ชื่อ หรือ รหัส"></label></div>
     <div class="pick" id="bList"></div>
@@ -709,6 +779,7 @@ async function pScores(){
     const it = curItem(); if(!it){ $('bPts').innerHTML=''; return; }
     $('bPts').innerHTML = `<div class="pts" style="${it.type==='หัก'?'background:#F6E3E1;color:#7A1A1A':'background:#E7ECF7;color:#12245A'}"><span>คะแนนตามเกณฑ์${it.is_severe?' · พฤติกรรมเสี่ยง':''}</span><b>${it.type==='หัก'?'−':'+'}${it.points}</b></div>`+
       (it.guidance?`<div class="xs muted" style="margin-top:6px">แนวทาง: ${esc(it.guidance)}</div>`:'');
+    $('bMeas').innerHTML = measPicker(it, it.measures);
     drawPick();
   };
   const drawPick=()=>{
@@ -734,14 +805,77 @@ function confirmScore(){
   const d=it.type==='หัก'?-it.points:it.points, sm={}; S.stu.forEach(s=>sm[s.id]=s);
   modal(`<h2 style="font-size:20px">ยืนยันการบันทึก</h2><p class="muted" style="margin:4px 0 12px">${esc(it.item_name)} · ${it.type} ${it.points} คะแนน · ${thDate($('bDate').value)}</p>
     <div class="tw" style="max-height:300px;overflow:auto"><table>${ids.map(id=>{ const s=sm[id], a=s.score+d; return `<tr><td>${esc(s.name)}<div class="xs muted">${esc(s.g+'/'+s.r)}</div></td><td class="n">${s.score} → <b style="color:${a<50?'#8E1F1F':'#12245A'}">${a}</b></td></tr>`; }).join('')}</table></div>
+    ${measSel('bMeas').length?`<p class="small">มาตรการเพิ่มเติม: <b>${esc(measNames(measSel('bMeas')).join(', '))}</b></p>`:''}
     ${$('bNote').value?`<p class="small">หมายเหตุ: ${esc($('bNote').value)}</p>`:''}
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button type="button" class="btn" data-close>ยกเลิก</button><button type="button" class="btn pri" id="bDo">ยืนยันบันทึก ${ids.length} คน</button></div>`, true);
   $('bDo').onclick=async()=>{
-    const r = await run(api('addScore',{ item_id:it.item_id, ids, date:$('bDate').value, note:$('bNote').value })); if(!r) return;
+    const r = await run(api('addScore',{ item_id:it.item_id, ids, date:$('bDate').value, note:$('bNote').value, measures:measSel('bMeas') })); if(!r) return;
     closeModal(); toast('บันทึกแล้ว '+r.count+' คน'+(r.missing.length?' · ข้าม '+r.missing.length+' คน':''));
     S.pick={}; $('bNote').value=''; await ensureStudents(true); $('bQ').dispatchEvent(new Event('input')); loadRecent();
   };
 }
+/* ----- คำขอตัดคะแนน ----- */
+const KIND_PILL = { 'ทรงผม':'lv2', 'แต่งกาย':'lv1', 'ครูเสนอ':'lv0' };
+const REQ_ST = { pending:['รอยืนยัน','lv1'], approved:['อนุมัติแล้ว','lv0'], rejected:['ไม่อนุมัติ','void'] };
+async function pRequests(status){
+  const [d, items, ms] = await run(Promise.all([api('requests',{ status, pull: status==='pending' }), S.items?Promise.resolve(S.items):api('scoreItems'), S.measures?Promise.resolve(S.measures):api('measures')])) || [];
+  if(!d) return; S.items=items; S.measures=ms; S.reqs=d.list;
+  S.init.pendingRequests=d.pending; drawNav();
+  const hak=items.filter(i=>i.type==='หัก'), cats=[...new Set(hak.map(i=>i.category))];
+  const opts=sel=>cats.map(c=>`<optgroup label="${esc(c)}">${hak.filter(i=>i.category===c).map(i=>`<option value="${esc(i.item_id)}"${i.item_id===sel?' selected':''}>${esc(i.item_name)} (−${i.points})</option>`).join('')}</optgroup>`).join('');
+  const card=(r,i)=>`<div class="reqcard" id="rq${i}"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px">
+      <div><b class="click" data-sid="${esc(r.student_id)}" style="font-size:17px;cursor:pointer">${esc(r.name)}</b> <span class="muted small">${esc(r.student_id)} · ${esc(r.cls)}</span></div>
+      <div><span class="pill ${KIND_PILL[r.kind]||'lv0'}">${esc(r.kind)}</span> <span class="pill ${REQ_ST[r.status][1]}">${REQ_ST[r.status][0]}</span></div></div>
+    <div class="small" style="margin-top:6px">${esc(r.evidence)}${r.note?`<div class="muted">${esc(r.note)}</div>`:''}</div>
+    <div class="xs muted" style="margin-top:4px">เสนอโดย ${esc(r.proposed_by)} · ${esc(r.proposed_at)} · ${esc(r.source)} · วันที่ ${thDate(r.date)}</div>
+    ${r.status==='pending'&&d.admin?`<div class="row" style="margin-top:10px;align-items:flex-end"><label class="f" style="flex:3 1 280px">รายการที่จะหัก${r.step?` <span class="xs muted">(ตามเกณฑ์: ครั้งที่ ${r.step})</span>`:''}<select data-ri="${i}" class="rqItem">${r.item_id?'':'<option value="">— เลือกรายการ —</option>'}${opts(r.item_id)}</select></label></div>
+      <div id="rqM${i}">${measPicker(items.find(x=>x.item_id===r.item_id)||{type:'หัก'}, r.measures)}</div>
+      <label class="f">หมายเหตุ/เหตุผล<input id="rqN${i}" placeholder="จำเป็นเมื่อไม่อนุมัติ"></label>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button type="button" class="btn red" data-rqno="${i}">ไม่อนุมัติ</button><button type="button" class="btn pri" data-rqok="${i}">อนุมัติและตัดคะแนน</button></div>`
+    :(r.status!=='pending'?`<div class="small" style="margin-top:8px;border-top:1px solid var(--line2);padding-top:8px">${r.status==='approved'?`หัก: <b>${esc(r.item_name)}</b> (−${r.points})${r.measures.length?` · มาตรการ: ${esc(r.measures.join(', '))}`:''}`:''}${r.decide_note?` · ${esc(r.decide_note)}`:''}<div class="xs muted">${esc(r.decided_by)} · ${esc(r.decided_at)}</div></div>`:'')}</div>`;
+  $('page').innerHTML = ptitle('คะแนนความประพฤติ', 'คำขอตัดคะแนนจากผลตรวจแต่งกาย/ทรงผม และครูเสนอ — ตัดคะแนนจริงเมื่อแอดมินอนุมัติ')+scTabs(status==='pending'?'req':'hist')+
+    (d.list.length?d.list.map(card).join(''):`<div class="card"><div class="empty">${status==='pending'?'ไม่มีคำขอรอยืนยัน':'ยังไม่มีประวัติคำขอ'}</div></div>`);
+  document.querySelectorAll('.rqItem').forEach(sel=>sel.onchange=()=>{ const i=+sel.dataset.ri, it=items.find(x=>x.item_id===sel.value); $('rqM'+i).innerHTML=measPicker(it||{type:'หัก'}, it?it.measures:[]); });
+  const decide=async(i, ok)=>{ const r=d.list[i], item=ok?document.querySelector('.rqItem[data-ri="'+i+'"]').value:'', note=$('rqN'+i).value.trim();
+    if(ok&&!item) return toast('กรุณาเลือกรายการที่จะหัก', true);
+    if(!ok&&note.length<3) return toast('กรุณาระบุเหตุผลที่ไม่อนุมัติ', true);
+    const it=items.find(x=>x.item_id===item), m=measSel('rqM'+i);
+    if(!confirm(ok?`อนุมัติตัดคะแนน ${r.name}\n${it.item_name} (−${it.points})${m.length?'\nมาตรการ: '+measNames(m).join(', '):''}`:`ไม่อนุมัติคำขอของ ${r.name}?`)) return;
+    const res=await run(api('decideRequest',{ req_id:r.req_id, decision:ok?'approve':'reject', item_id:item, measures:m, note })); if(!res) return;
+    toast(ok?'อนุมัติและตัดคะแนนแล้ว':'ไม่อนุมัติแล้ว'); S.stu=null; pRequests(status); };
+  document.querySelectorAll('[data-rqok]').forEach(b=>b.onclick=()=>decide(+b.dataset.rqok, true));
+  document.querySelectorAll('[data-rqno]').forEach(b=>b.onclick=()=>decide(+b.dataset.rqno, false));
+}
+async function proposeModal(){
+  const [items, list] = await run(Promise.all([S.items?Promise.resolve(S.items):api('scoreItems'), ensureStudents()])) || [];
+  if(!items) return; S.items=items;
+  const u=S.init.user, mine=S.stu.filter(s=>(u.roles.includes('head')&&(u.grades||[]).includes(s.g))||(u.roles.includes('advisor')&&(u.rooms||[]).includes(s.g+'/'+s.r)));
+  const hak=items.filter(i=>i.type==='หัก'), cats=[...new Set(hak.map(i=>i.category))];
+  modal(`<h2 style="font-size:20px">เสนอตัดคะแนน</h2><p class="small muted">คำขอจะส่งให้แอดมินบันทึกคะแนนตรวจสอบและอนุมัติก่อนตัดคะแนนจริง</p>
+    <label class="f" style="margin-top:10px">รายการ<select id="pI">${cats.map(c=>`<optgroup label="${esc(c)}">${hak.filter(i=>i.category===c).map(i=>`<option value="${esc(i.item_id)}">${esc(i.item_name)} (−${i.points})</option>`).join('')}</optgroup>`).join('')}</select></label>
+    <label class="f" style="margin-top:10px">วันที่เกิดเหตุ<input type="date" id="pD" value="${iso()}" max="${iso()}"></label>
+    <label class="f" style="margin-top:10px">ค้นหานักเรียน<input id="pQ" placeholder="ชื่อ หรือ รหัส"></label>
+    <div class="pick" id="pL" style="max-height:260px"></div>
+    <label class="f" style="margin-top:10px">รายละเอียด/หลักฐาน (จำเป็น)<textarea id="pN" placeholder="เช่น พบเห็นที่ไหน เวลาใด ใครเป็นพยาน"></textarea></label>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-close>ยกเลิก</button><button type="button" class="btn pri" id="pDo">ส่งคำขอ</button></div>`);
+  const pick={};
+  const draw=()=>{ const q=$('pQ').value.trim().toLowerCase(); $('pL').innerHTML=mine.filter(s=>!q||(s.id+' '+s.name).toLowerCase().includes(q)).slice(0,200).map(s=>`<label><input type="checkbox" data-pp="${esc(s.id)}" ${pick[s.id]?'checked':''}><span style="flex:1">${esc(s.name)} <span class="xs muted">${esc(s.id)} · ${esc(s.g+'/'+s.r)}</span></span><span class="small">${s.score}</span></label>`).join('')||'<div class="empty">ไม่พบนักเรียน</div>'; };
+  draw(); $('pQ').oninput=draw; $('pL').onchange=e=>{ const id=e.target.dataset.pp; if(!id) return; if(e.target.checked) pick[id]=1; else delete pick[id]; };
+  $('pDo').onclick=async()=>{ const ids=Object.keys(pick); if(!ids.length) return toast('กรุณาเลือกนักเรียน', true);
+    const r=await run(api('proposeScore',{ item_id:$('pI').value, ids, date:$('pD').value, note:$('pN').value })); if(!r) return;
+    closeModal(); toast('ส่งคำขอแล้ว '+r.count+' คน รอแอดมินอนุมัติ'); if(S.page==='myclass') pMyClass(S.mcCls, S.mcDate); };
+}
+/* มาตรการเพิ่มเติม (เลือกได้หลายข้อ · กลุ่มเดียวกันเลือกได้ 1) */
+function measPicker(it, pre){
+  if(!it || it.type!=='หัก' || !S.measures || !S.measures.length) return '';
+  const on = new Set(pre||[]);
+  return `<div class="meas"><div class="small" style="font-weight:600;margin-bottom:6px">มาตรการเพิ่มเติม <span class="xs muted" style="font-weight:400">(เลือกได้มากกว่า 1 · ระบบติ๊กตามแนวทางของรายการให้ แก้ได้)</span></div>
+    <div class="chips">${S.measures.map(m=>`<label class="mchk"><input type="checkbox" value="${esc(m.id)}" data-grp="${esc(m.group)}" ${on.has(m.id)?'checked':''}> ${esc(m.name)}</label>`).join('')}</div></div>`;
+}
+function measSel(boxId){ const b=$(boxId); return b ? [...b.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value) : []; }
+function measNames(ids){ const m={}; (S.measures||[]).forEach(x=>m[x.id]=x.name); return ids.map(i=>m[i]||i); }
+document.addEventListener('change', e=>{ const t=e.target; if(!t.matches('.meas input[type=checkbox]')||!t.checked||!t.dataset.grp) return;
+  t.closest('.meas').querySelectorAll('input[data-grp="'+t.dataset.grp+'"]').forEach(x=>{ if(x!==t) x.checked=false; }); });
 async function loadRecent(){
   try{
     const list = await api('recentScores',{ limit:60 });
@@ -749,7 +883,7 @@ async function loadRecent(){
     $('bRecent').className='';
     $('bRecent').innerHTML = list.length ? list.map(l=>`<div style="border-bottom:1px solid var(--line2);padding:8px 0;${l.status==='void'?'opacity:.55':''}">
       <div style="display:flex;justify-content:space-between;gap:8px"><b style="font-weight:500">${esc(l.name)}</b><b style="color:${l.points<0?'#8E1F1F':'#1B3170'}">${l.points>0?'+':''}${l.points}</b></div>
-      <div class="xs muted">${esc(l.item)} · ${esc(l.cls)} · ${thDate(l.date)}</div><div class="xs muted">${esc(l.by)}</div>
+      <div class="xs muted">${esc(l.item)} · ${esc(l.cls)} · ${thDate(l.date)}</div>${l.measures?`<div class="xs" style="color:#7E3A1C">มาตรการ: ${esc(l.measures)}</div>`:''}<div class="xs muted">${esc(l.by)}</div>
       ${l.status==='void'?`<div class="xs"><span class="pill void">ยกเลิก</span> ${esc(l.void_reason)}</div>`:(can('score.void')?`<button type="button" class="btn red sm" style="margin-top:6px" data-void="${esc(l.log_id)}">ยกเลิกรายการ</button>`:'')}</div>`).join('') : '<div class="empty">ยังไม่มีรายการ</div>';
   }catch(e){ if($('bRecent')) $('bRecent').textContent=e.message; }
 }
@@ -938,6 +1072,8 @@ document.addEventListener('click', e=>{
   const nb=t.closest('#nav [data-page]'); if(nb) return go(nb.dataset.page);
   const at=t.closest('[data-atab]'); if(at) return pAdmin(at.dataset.atab);
   if(t.closest('[data-close]') || t.id==='modal') return closeModal();
+  const stb=t.closest('[data-sctab]'); if(stb){ S.scTab=stb.dataset.sctab; return pScores(); }
+  const pr=t.closest('[data-propose]'); if(pr) return proposeModal();
   const mt=t.closest('[data-mctab]'); if(mt){ S.mcTab=mt.dataset.mctab; if(S.mcTab==='edit'&&!RC.cls&&/\//.test(S.mcCls||'')) RC.cls=S.mcCls; return pMyClass(); }
   const rk=t.closest('[data-rckind]'); if(rk){ if(Object.keys(RC.ch).length && !confirm('ยังไม่ได้บันทึกการแก้ไข ต้องการออกจากหน้านี้หรือไม่?')) return; RC.kind=rk.dataset.rckind; RC.date=''; RC.ch={}; return pMcEdit(); }
   const rd=t.closest('[data-rcdate]'); if(rd){ RC.date=rd.dataset.rcdate; return pMcEdit(); }

@@ -9,7 +9,7 @@ function bumpSummary_() { props_().setProperty('SUM_VER', String(Number(sumVer_(
 
 function summary_() {
   if (MEMO_._sum) return MEMO_._sum;
-  var key = 'SUM_' + sumVer_() + '_' + year_();
+  var key = 'SUM_' + sumVer_() + '_' + year_() + '_' + today_();   // มาตรการ "กำลังดำเนินการ" ขึ้นกับวันที่
   var c = cacheGetBig_(key);
   if (c) { MEMO_._sum = c; return c; }
   var s = buildSummary_();
@@ -23,7 +23,7 @@ function buildSummary_() {
   var T = { crit: num_(C.RISK_CRITICAL, 30), high: num_(C.RISK_HIGH, 50), watch: num_(C.RISK_WATCH, 60),
             attMin: num_(C.ATT_MIN, 80), attNear: num_(C.ATT_NEAR, 85), minDays: num_(C.MIN_DAYS, 5),
             absent: num_(C.ABSENT_WATCH, 3), late: num_(C.LATE_WATCH, 5), dress: num_(C.DRESS_WATCH, 3) };
-  var certs = certRules_(), studs = activeStudents_(), st = {};
+  var certs = certRules_(), studs = activeStudents_(), st = {}, MS = measuresByStudent_(year, today_());
   studs.forEach(function (s) { st[s.student_id] = { stage: stage_(s.grade), plus: 0, minus: 0, sev: {}, P: 0, O: 0, LV: 0, L: 0, A: 0, D: 0, dress: 0 }; });
 
   rows_('BehaviorLog').forEach(function (b) {
@@ -55,12 +55,15 @@ function buildSummary_() {
     if (x.A >= T.absent) flag(1, 'ขาดเรียนสะสม ' + x.A + ' วัน', 'ระบบเพื่อนช่วยเพื่อน และโทรติดตามผู้ปกครองทุกครั้งที่ขาด');
     if (x.L >= T.late) flag(1, 'มาสายสะสม ' + x.L + ' ครั้ง', 'กิจกรรม "มาเช้า ได้ดาว" ตรวจสอบปัญหาการเดินทาง');
     if (x.dress >= T.dress) flag(1, 'ผิดระเบียบการแต่งกาย ' + x.dress + ' ครั้ง', 'ตักเตือน ชี้แจงผู้ปกครอง ประสานกองทุนชุดนักเรียนหากขาดแคลน');
+    var mx = MS[s.student_id] || { list: [], current: [], probation: 0, contract: 0 };
+    if (mx.probation) flag(2, 'ทำทัณฑ์บนแล้ว ' + mx.probation + ' ครั้ง (ปีการศึกษานี้)', 'ครูที่ปรึกษาติดตามใกล้ชิด ประสานผู้ปกครองทุกสัปดาห์ ส่งต่อครูแนะแนว/ฝ่ายปกครอง');
     Object.keys(x.sev).forEach(function (k) { flag(2, 'พฤติกรรมเสี่ยง: ' + k + ' (' + x.sev[k] + ' ครั้ง)', 'ส่งต่อครูแนะแนว/ฝ่ายปกครอง และหน่วยงานภายนอกตามความเหมาะสม'); });
     var cert = certOf_(score, certs);
     return {
-      id: s.student_id, no: num_(s.number, 999), name: fullName_(s), g: s.grade, r: s.room, sex: s.gender, stage: x.stage,
+      id: s.student_id, no: num_(s.number, 999), name: fullName_(s), g: s.grade, r: s.room, sex: s.gender, stage: x.stage, type: s.student_type || STUDENT_TYPES[0],
       score: score, plus: x.plus, minus: x.minus, P: x.P, O: x.O, LV: x.LV, L: x.L, A: x.A, days: x.D, rate: rate, dress: x.dress,
-      lv: lv, reasons: reasons, advice: advice, cert: cert.label, certOk: cert.issue
+      lv: lv, reasons: reasons, advice: advice, cert: cert.label, certOk: cert.issue,
+      mNow: mx.current.map(function (m) { return { name: m.name, start: m.start, end: m.end }; }), mProb: mx.probation, mContract: mx.contract
     };
   });
 }
@@ -95,6 +98,12 @@ function dashboard_(u) {
   });
   var dress = dressDash_(list, sm, today);
   delete dress.today.list; delete dress.watchList;   // แดชบอร์ดรวมไม่แสดงรายชื่อ
+  var meas = { now: 0, prob: 0, contract: 0, byName: {} };
+  list.forEach(function (s) {
+    if (s.mNow && s.mNow.length) { meas.now++; s.mNow.forEach(function (m) { meas.byName[m.name] = (meas.byName[m.name] || 0) + 1; }); }
+    if (s.mProb) meas.prob++;
+    if (s.mContract) meas.contract++;
+  });
   return {
     year: year_(), term: term_(), today: today, total: list.length, male: male, female: female, levels: L,
     avgRate: nR ? round1_(sumR / nR) : null, avgScore: list.length ? round1_(sumS / list.length) : null,
@@ -102,7 +111,7 @@ function dashboard_(u) {
     certs: certRules_().map(function (c) { return { label: c.label, issue: c.issue, min: c.min, max: c.max, n: certCount[c.label] || 0 }; }),
     attToday: Object.keys(tg).sort(function (a, b) { return gnum_(a) - gnum_(b); }).map(function (k) { return tg[k]; }),
     roomsTotal: rooms.length, roomsReported: reported, attUpdated: att.at || '',
-    dress: dress, hasMyClass: myOptions_(u).length > 0,
+    dress: dress, measures: meas, hasMyClass: myOptions_(u).length > 0,
     shield: shieldCalc_(year_(), summary_()).overall
   };
 }
@@ -186,6 +195,9 @@ function myClass_(u, p) {
     day: day, rooms: rooms, absentees: absentees, dressList: dressList, trend: trend, needPull: !rdAll.some(function (d) { return d.year === y && d.term === term; }),
     total: list.length, levels: L, avgScore: list.length ? round1_(sumS / list.length) : null, avgRate: nR ? round1_(sumR / nR) : null,
     dress: { termTotal: dress.termTotal, termStudents: dress.termStudents, items: dress.items, watchN: dress.watchN, watch: dress.watch, watchList: dress.watchList },
+    measures: list.filter(function (s) { return (s.mNow && s.mNow.length) || s.mProb || s.mContract; })
+      .map(function (s) { return { id: s.id, name: s.name, cls: cls_(s.g, s.r), now: s.mNow, prob: s.mProb, contract: s.mContract }; })
+      .sort(function (a, b) { return b.now.length - a.now.length || b.prob - a.prob || a.cls.localeCompare(b.cls, 'th', { numeric: true }); }),
     alerts: list.filter(function (s) { return s.lv > 0; }).sort(function (a, b) { return b.lv - a.lv || a.score - b.score; }).slice(0, 300)
       .map(function (s) { return { id: s.id, name: s.name, cls: cls_(s.g, s.r), score: s.score, rate: s.rate, lv: s.lv, reasons: s.reasons, advice: s.advice }; })
   };
@@ -226,7 +238,7 @@ function dressDash_(list, sm, today) {
 /* ===== รายชื่อนักเรียน (แบบย่อ) ===== */
 function studentsList_(u) {
   return scoped_(u).map(function (s) {
-    return { id: s.id, no: s.no, name: s.name, g: s.g, r: s.r, score: s.score, rate: s.rate, lv: s.lv, cert: s.cert, certOk: s.certOk, A: s.A, L: s.L };
+    return { id: s.id, no: s.no, name: s.name, g: s.g, r: s.r, type: s.type, score: s.score, rate: s.rate, lv: s.lv, cert: s.cert, certOk: s.certOk, A: s.A, L: s.L };
   });
 }
 
@@ -245,6 +257,14 @@ function studentDetail_(id, opts) {
   res.att = rows_('AttendanceDaily').filter(function (d) { return d.student_id === id; })
     .map(function (d) { return { date: d.date, status: d.status, dress: d.dress_items }; })
     .sort(function (a, b) { return a.date < b.date ? 1 : -1; }).slice(0, 60);
+  var mAll = rows_('MeasureLog').filter(function (m) { return m.student_id === id && m.status !== 'void'; }), td = today_(), mByLog = {};
+  res.measureList = mAll.map(function (m) {
+    var o = { date: m.date, year: m.year, term: m.term, name: m.name, start: m.start_date, end: m.end_date, probation: bool_(m.probation) };
+    o.state = !o.end ? 'บันทึกแล้ว' : (td < o.start ? 'ยังไม่เริ่ม' : (td <= o.end ? 'กำลังดำเนินการ' : 'ครบกำหนดแล้ว'));
+    (mByLog[m.log_id] = mByLog[m.log_id] || []).push(m.name);
+    return o;
+  }).sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+  res.logs.forEach(function (l) { l.measures = (mByLog[l.log_id] || []).join(', '); });
   res.dressLog = rows_('DressChecks').filter(function (d) { return d.student_id === id; })
     .map(function (d) { return { date: d.date, year: d.year, term: d.term, items: d.items, note: d.note, by: opts.staff ? d.recorded_by : '' }; })
     .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
@@ -254,6 +274,8 @@ function studentDetail_(id, opts) {
   if (opts.contact) {
     var stu = studentMap_()[id] || {};
     res.parent = (stu.guardian_name || '') + (stu.guardian_relation ? ' (' + stu.guardian_relation + ')' : ''); res.phone = stu.parent_phone;
+    res.guardian_name = stu.guardian_name || ''; res.guardian_relation = stu.guardian_relation || '';
+    res.editedBy = stu.edited_by || ''; res.editedAt = stu.edited_at || '';
   }
   if (opts.care) res.care = careOf_(id);
   if (!opts.staff) { delete res.reasons; delete res.advice; delete res.lv; }

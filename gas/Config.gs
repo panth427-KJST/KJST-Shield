@@ -36,6 +36,7 @@ var CONFIG_DEFAULTS = [
   ['LATE_WATCH', '5', 'มาสายสะสม (ครั้ง) = เฝ้าระวัง'],
   ['DRESS_WATCH', '3', 'ผิดระเบียบแต่งกาย/ทรงผมสะสม (ครั้ง) = เฝ้าระวัง'],
   ['SESSION_HOURS', '6', 'อายุ session (ชั่วโมง สูงสุด 6)'],
+  ['DRESS_LADDER_NAME', 'เครื่องแต่งกายหรือทรงผม', 'ข้อความในชื่อรายการหักคะแนนแบบขั้นบันได (ครั้งที่ 3/4/5) ที่ใช้กับคำขอจากผลตรวจแต่งกาย/ทรงผม'],
   ['ATT_WEB_URL', 'https://panth427-kjst.github.io/KJST-Attendance/', 'ลิงก์หน้าเว็บ KJST e-Attendance (ปุ่มบันทึกการมาเรียน/ตรวจระเบียบ ในหน้าชั้นเรียนของฉัน)'],
   ['YEARS', '2567,2568,2569', 'ปีการศึกษาที่แสดงในข้อมูลย้อนหลัง']
 ];
@@ -59,6 +60,7 @@ var SCHEMA = {
   RulesLog: { file: 'SYSTEM', cols: ['at', 'by', 'table', 'key', 'field', 'old_value', 'new_value'] },
   AttendanceSources: { file: 'SYSTEM', cols: ['year', 'term', 'file_id', 'label', 'active', 'last_pull', 'last_result'] },
   ShieldKPI: { file: 'SYSTEM', cols: ['year', 'code', 'component', 'indicator', 'target', 'actual'] },
+  Measures: { file: 'SYSTEM', cols: ['measure_id', 'name', 'days', 'group', 'keywords', 'is_probation', 'active', 'sort_order'] },
   EditLog: { file: 'SYSTEM', cols: ['at', 'by', 'kind', 'year', 'term', 'date', 'room', 'student_id', 'student_name', 'field', 'old_value', 'new_value', 'reason', 'batch_id'] },
   AuditLog: { file: 'SYSTEM', cols: ['at', 'by', 'action', 'detail'] },
 
@@ -67,14 +69,20 @@ var SCHEMA = {
   Students: {
     file: 'DATA',
     cols: ['student_id', 'number', 'prefix', 'first_name', 'last_name', 'gender', 'grade', 'room', 'status', 'status_date',
-           'guardian_name', 'guardian_relation', 'synced_at', 'parent_phone', 'nid_last4', 'auth_hash', 'dmc_at'],
-    gold: ['parent_phone', 'nid_last4', 'auth_hash', 'dmc_at']
+           'guardian_name', 'guardian_relation', 'synced_at', 'parent_phone', 'nid_last4', 'auth_hash', 'dmc_at',
+           'student_type', 'edited_fields', 'edited_by', 'edited_at'],
+    gold: ['parent_phone', 'nid_last4', 'auth_hash', 'dmc_at', 'student_type', 'edited_fields', 'edited_by', 'edited_at']
   },
   BehaviorLog: {
     file: 'DATA',
     cols: ['log_id', 'date', 'year', 'term', 'student_id', 'grade', 'room', 'stage', 'item_id', 'type', 'category', 'item_name', 'points', 'severe',
-           'note', 'recorded_by', 'recorded_at', 'status', 'void_by', 'void_at', 'void_reason']
+           'note', 'recorded_by', 'recorded_at', 'status', 'void_by', 'void_at', 'void_reason', 'measures', 'request_id']
   },
+  MeasureLog: { file: 'DATA', cols: ['ml_id', 'log_id', 'student_id', 'grade', 'room', 'year', 'term', 'date', 'measure_id', 'name', 'days', 'probation',
+                                     'start_date', 'end_date', 'status', 'recorded_by', 'recorded_at', 'doc_no'] },
+  ScoreRequests: { file: 'DATA', cols: ['req_id', 'source', 'kind', 'student_id', 'grade', 'room', 'date', 'item_id', 'evidence', 'note',
+                                        'proposed_by', 'proposed_at', 'status', 'decided_item_id', 'decided_points', 'measures', 'decided_by', 'decided_at',
+                                        'decide_note', 'log_id', 'ext_ref'] },
   AttendanceStats: { file: 'DATA', cols: ['year', 'term', 'student_id', 'present', 'official', 'leave', 'late', 'absent', 'days', 'dress', 'updated_at'] },
   AttendanceDaily: { file: 'DATA', cols: ['date', 'student_id', 'grade', 'room', 'status', 'dress_items'] },
   AttendanceRoomDaily: { file: 'DATA', cols: ['year', 'term', 'date', 'grade', 'room', 'total', 'present', 'official', 'leave', 'late', 'absent', 'blank'] },
@@ -103,6 +111,8 @@ var PERMISSIONS_SEED = [
   ['data.import',     'นำเข้า DMC / ดึงข้อมูลเช็กชื่อ / ยอดยกมา',      0, 0, 0, 0, 1],
   ['settings.manage', 'ตั้งค่าปีการศึกษา ภาคเรียน เกณฑ์เฝ้าระวัง',      0, 0, 0, 0, 1],
   ['shield.edit',     'บันทึกผลตัวชี้วัด KJST SHIELD',                 0, 0, 0, 0, 1],
+  ['student.edit',    'แก้ไขข้อมูลผู้ปกครองและประเภทนักเรียน',          0, 0, 0, 1, 1],
+  ['score.propose',   'เสนอตัดคะแนน (รอแอดมินอนุมัติ)',                0, 1, 1, 0, 0],
   ['records.edit',    'แก้ไขข้อมูลการมาเรียน/แต่งกาย/ทรงผมย้อนหลัง',     0, 0, 0, 1, 1]
 ];
 
@@ -177,6 +187,7 @@ var SEED_SYSADMINS = ['T003', 'T304'];
 var ATT_CODES = { '1': 'มา', '2': 'ราชการ', '3': 'ลา', '4': 'สาย', '5': 'ขาด' };
 
 /** นักเรียนปัจจุบัน = สถานะ "กำลังศึกษา" ในทะเบียนนักเรียน (รอย้าย/ย้ายออก/จำหน่าย ไม่นับ) */
+var STUDENT_TYPES = ['ไป-กลับ', 'พักนอนประจำ'];
 var ACTIVE_STATUS = 'กำลังศึกษา';
 
 var CARE_KINDS = ['ติดตาม', 'เยี่ยมบ้าน', 'ส่งต่อ'];
