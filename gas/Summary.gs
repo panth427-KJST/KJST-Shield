@@ -135,7 +135,8 @@ function myClass_(u, p) {
 
   var list = summary_().filter(function (s) { return inSel(s.g, s.r); }), sm = {};
   list.forEach(function (s) { sm[s.id] = s; });
-  var rd = rows_('AttendanceRoomDaily').filter(function (d) { return d.year === y && inSel(d.grade, d.room) && d.date <= today; });
+  var rdAll = rows_('AttendanceRoomDaily');
+  var rd = rdAll.filter(function (d) { return d.year === y && d.term === term && inSel(d.grade, d.room) && d.date <= today; });
   var dset = {}; rd.forEach(function (d) { dset[d.date] = 1; });
   var dates = Object.keys(dset).sort().reverse();
   var date = normDate_(str_(p.date)) || '';
@@ -166,14 +167,14 @@ function myClass_(u, p) {
     var d = dressDay[id]; return { id: id, name: sm[id].name, cls: cls_(d.grade, d.room), items: d.items, note: d.note };
   }).sort(function (a, b) { return a.cls.localeCompare(b.cls, 'th', { numeric: true }); });
 
-  // แนวโน้มอัตรามาเรียน 20 วันล่าสุดที่มีการเช็กชื่อ
+  // แนวโน้มอัตรามาเรียนรายวัน ตั้งแต่เปิดภาคเรียน
   var tr = {};
   rd.forEach(function (d) {
     var t = tr[d.date] = tr[d.date] || { ok: 0, coded: 0, absent: 0, late: 0 };
     var cd = num_(d.present) + num_(d.official) + num_(d.leave) + num_(d.late) + num_(d.absent);
     t.ok += num_(d.present) + num_(d.official) + num_(d.late); t.coded += cd; t.absent += num_(d.absent); t.late += num_(d.late);
   });
-  var trend = Object.keys(tr).sort().slice(-20).map(function (k) { var t = tr[k]; return { date: k, rate: t.coded ? round1_(t.ok / t.coded * 100) : null, absent: t.absent, late: t.late }; });
+  var trend = Object.keys(tr).sort().map(function (k) { var t = tr[k]; return { date: k, rate: t.coded ? round1_(t.ok / t.coded * 100) : null, absent: t.absent, late: t.late }; });
 
   // ภาพรวมสะสม (ปีการศึกษา) ของกลุ่มที่เลือก
   var L = [0, 0, 0, 0], sumS = 0, sumR = 0, nR = 0;
@@ -182,7 +183,7 @@ function myClass_(u, p) {
   return {
     year: y, term: term, today: today, date: date, dates: dates.slice(0, 200), sel: sel, options: opts,
     attUrl: String(cfg_('ATT_WEB_URL') || ''), attUpdated: (function () { try { return JSON.parse(cfg_('ATT_TODAY') || '{}').at || ''; } catch (e) { return ''; } })(),
-    day: day, rooms: rooms, absentees: absentees, dressList: dressList, trend: trend,
+    day: day, rooms: rooms, absentees: absentees, dressList: dressList, trend: trend, needPull: !rdAll.some(function (d) { return d.year === y && d.term === term; }),
     total: list.length, levels: L, avgScore: list.length ? round1_(sumS / list.length) : null, avgRate: nR ? round1_(sumR / nR) : null,
     dress: { termTotal: dress.termTotal, termStudents: dress.termStudents, items: dress.items, watchN: dress.watchN, watch: dress.watch, watchList: dress.watchList },
     alerts: list.filter(function (s) { return s.lv > 0; }).sort(function (a, b) { return b.lv - a.lv || a.score - b.score; }).slice(0, 300)

@@ -399,11 +399,12 @@ async function pMyClass(cls, date){
   const opt = d.options.map(o=>`<option value="${esc(o.v)}"${o.v===d.sel?' selected':''}>${esc(o.label)}${o.own?' (ห้องที่ปรึกษา)':''}</option>`).join('');
   const recorded = D.roomsRecorded>0;
   const mxT = 100;
-  const trend = d.trend.length?`<div style="display:flex;align-items:flex-end;gap:5px;height:130px;padding-top:6px">${d.trend.map(t=>`
-      <div class="click" data-mcdate="${t.date}" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer" title="${thDate(t.date)} · มาเรียน ${t.rate==null?'-':t.rate+'%'} · ขาด ${t.absent} · สาย ${t.late}">
+  const trend = d.trend.length?`<div style="overflow-x:auto"><div style="display:flex;align-items:flex-end;gap:5px;height:130px;padding-top:6px;min-width:${d.trend.length*30}px">${d.trend.map(t=>`
+      <div class="click" data-mcdate="${t.date}" style="flex:1;min-width:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer" title="${thDate(t.date)} · มาเรียน ${t.rate==null?'-':t.rate+'%'} · ขาด ${t.absent} · สาย ${t.late}">
         <span class="xs" style="color:var(--navy);font-weight:600">${t.rate==null?'':Math.round(t.rate)}</span>
         <i style="display:block;width:100%;max-width:30px;height:${t.rate==null?3:Math.max((t.rate-50)/(mxT-50)*95,3)}px;border-radius:5px 5px 0 0;background:${t.date===d.date?'#C9A227':'#1B3170'}"></i>
-        <span class="xs muted" style="white-space:nowrap">${esc(t.date.slice(8))}/${esc(t.date.slice(5,7))}</span></div>`).join('')}</div><div class="xs muted">อัตรามาเรียน (%) · กดแท่งเพื่อดูวันนั้น</div>`:'<div class="empty">ยังไม่มีข้อมูล</div>';
+        <span class="xs muted" style="white-space:nowrap">${esc(t.date.slice(8))}/${esc(t.date.slice(5,7))}</span></div>`).join('')}</div></div><div class="xs muted">อัตรามาเรียน (%) รายวัน ตั้งแต่ ${thDate(d.trend[0].date)} · ${d.trend.length} วัน · กดแท่งเพื่อดูวันนั้น</div>`
+    : (d.needPull?`<div class="empty">ยังไม่มีข้อมูลสรุปรายวัน — ต้องดึงข้อมูลเช็กชื่อ 1 ครั้งหลังอัปเดตระบบ${can('data.import')?'<div style="margin-top:10px"><button type="button" class="btn pri" id="mcPull">ดึงข้อมูลเช็กชื่อตอนนี้</button></div>':' (ระบบจะดึงอัตโนมัติเวลา 08.30 และ 10.00 น.)'}</div>`:'<div class="empty">ยังไม่มีข้อมูล</div>');
   $('page').innerHTML = `<div class="mc-head">
       <div><h1 style="font-size:25px">ชั้นเรียนของฉัน</h1><div class="muted small">ข้อมูลเฉพาะระดับชั้น/ห้องเรียนที่ดูแล${d.attUpdated?' · ดึงข้อมูลเช็กชื่อล่าสุด '+esc(d.attUpdated):''}</div></div>
       ${btns}
@@ -440,7 +441,7 @@ async function pMyClass(cls, date){
         ${d.dressList.map(t=>`<tr class="click" data-sid="${esc(t.id)}"><td>${esc(t.name)}<div class="xs muted">${esc(t.cls)}</div></td><td class="small">${esc(t.items)}${t.note?'<div class="xs muted">'+esc(t.note)+'</div>':''}</td></tr>`).join('')}</table></div>`:'<div class="empty">ไม่มีบันทึกผู้ผิดระเบียบในวันนี้</div>'}</div>
     </div>
 
-    <div class="card"><h2>แนวโน้มการมาเรียน (20 วันล่าสุด)</h2>${trend}</div>
+    <div class="card"><h2>แนวโน้มการมาเรียน ภาคเรียนที่ ${esc(d.term)}</h2>${trend}</div>
 
     <h2 style="margin:18px 0 10px">ภาพรวมสะสม ปีการศึกษา ${esc(d.year)}</h2>
     <div class="grid">
@@ -461,6 +462,7 @@ async function pMyClass(cls, date){
   $('mcPrev').onclick=()=>pMyClass(S.mcCls, addDay(d.date,-1));
   $('mcNext').onclick=()=>pMyClass(S.mcCls, addDay(d.date,1));
   $('mcToday').onclick=()=>pMyClass(S.mcCls, d.today);
+  if($('mcPull')) $('mcPull').onclick=async()=>{ $('mcPull').disabled=true; $('mcPull').textContent='กำลังดึงข้อมูล… (ประมาณ 1 นาที)'; if(await run(api('attendancePull'))){ toast('ดึงข้อมูลเช็กชื่อแล้ว'); pMyClass(S.mcCls, S.mcDate); } else { $('mcPull').disabled=false; $('mcPull').textContent='ดึงข้อมูลเช็กชื่อตอนนี้'; } };
 }
 function alertTable(list){
   if(!list.length) return '<div class="empty">ไม่มีนักเรียนที่ต้องติดตาม</div>';
