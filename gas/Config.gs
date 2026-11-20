@@ -83,6 +83,8 @@ var SCHEMA = {
   ScoreRequests: { file: 'DATA', cols: ['req_id', 'source', 'kind', 'student_id', 'grade', 'room', 'date', 'item_id', 'evidence', 'note',
                                         'proposed_by', 'proposed_at', 'status', 'decided_item_id', 'decided_points', 'measures', 'decided_by', 'decided_at',
                                         'decide_note', 'log_id', 'ext_ref'] },
+  BehaviorDocs: { file: 'DATA', cols: ['doc_no', 'kind', 'log_id', 'student_id', 'year', 'incident_date', 'incident_time', 'place', 'behavior', 'reporter', 'comment',
+                                       'guardian_name', 'guardian_relation', 'signers', 'created_by', 'created_at', 'updated_by', 'updated_at', 'printed_at'] },
   AttendanceStats: { file: 'DATA', cols: ['year', 'term', 'student_id', 'present', 'official', 'leave', 'late', 'absent', 'days', 'dress', 'updated_at'] },
   AttendanceDaily: { file: 'DATA', cols: ['date', 'student_id', 'grade', 'room', 'status', 'dress_items'] },
   AttendanceRoomDaily: { file: 'DATA', cols: ['year', 'term', 'date', 'grade', 'room', 'total', 'present', 'official', 'leave', 'late', 'absent', 'blank'] },

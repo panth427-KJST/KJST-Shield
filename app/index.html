@@ -85,6 +85,8 @@ main{max-width:1280px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-dir
 .mchk{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid var(--fline);border-radius:999px;background:#fff;font-size:14px;cursor:pointer}
 .mchk input{width:18px;min-height:18px;margin:0}
 .mpill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:600;background:#F7E6DA;color:#7E3A1C;margin:2px 4px 2px 0}
+.sg{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;opacity:.65}.sg.on{border:2px solid var(--navy);background:#F5F7FC;opacity:1}
+.sg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}.sg-grid .sg{margin:0}
 .nbadge{display:inline-block;min-width:22px;padding:1px 7px;border-radius:999px;background:#C0392B;color:#fff;font-size:12px;font-weight:700;margin-left:4px}
 .reqcard{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0;background:#fff}
 .mc-tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line);margin-top:14px}
@@ -751,9 +753,11 @@ function scTabs(cur){
   const n=S.init.pendingRequests||0;
   return `<div class="mc-tabs" role="tablist" style="margin:0 0 14px"><button type="button" role="tab" data-sctab="rec" class="${cur==='rec'?'on':''}">บันทึกคะแนน</button>
     <button type="button" role="tab" data-sctab="req" class="${cur==='req'?'on':''}">รอยืนยันตัดคะแนน${n?` <span class="nbadge">${n}</span>`:''}</button>
-    <button type="button" role="tab" data-sctab="hist" class="${cur==='hist'?'on':''}">ประวัติคำขอ</button></div>`;
+    <button type="button" role="tab" data-sctab="hist" class="${cur==='hist'?'on':''}">ประวัติคำขอ</button>
+    <button type="button" role="tab" data-sctab="rep" class="${cur==='rep'?'on':''}">รายงาน</button></div>`;
 }
 async function pScores(){
+  if(S.scTab==='rep') return pReports();
   if(S.scTab==='req'||S.scTab==='hist') return pRequests(S.scTab==='req'?'pending':'all');
   const [items, list, ms] = await run(Promise.all([S.items?Promise.resolve(S.items):api('scoreItems'), ensureStudents(), S.measures?Promise.resolve(S.measures):api('measures')])) || [];
   if(!items) return; S.items = items; S.measures = ms; S.pick = {};
@@ -864,6 +868,157 @@ async function proposeModal(){
   $('pDo').onclick=async()=>{ const ids=Object.keys(pick); if(!ids.length) return toast('กรุณาเลือกนักเรียน', true);
     const r=await run(api('proposeScore',{ item_id:$('pI').value, ids, date:$('pD').value, note:$('pN').value })); if(!r) return;
     closeModal(); toast('ส่งคำขอแล้ว '+r.count+' คน รอแอดมินอนุมัติ'); if(S.page==='myclass') pMyClass(S.mcCls, S.mcDate); };
+}
+/* ----- รายงาน: รายงานการหักคะแนน (รห.) · บันทึกพฤติกรรม (บพ.) ----- */
+const MLONG=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const thLong = s => { const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (+m[3])+' '+MLONG[+m[2]-1]+' '+(+m[1]+543) : (s||''); };
+const thStamp = s => { const m=String(s||'').match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/); return m ? thDate(m[1])+' '+m[2]+' น.' : (s||''); };
+const addDaysIso = (n) => { const d=new Date(); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const REP = { from:'', to:'', cls:'', q:'', filter:'all' };
+async function pReports(){
+  if(!REP.from){ REP.from=addDaysIso(-30); REP.to=iso(); }
+  const d = await run(api('reportList', REP)); if(!d) return;
+  S.signers=d.signers; S.repRows=d.rows;
+  const clsOpts = Object.keys(S.init.classes).map(g=>`<option value="${g}"${REP.cls===g?' selected':''}>ทั้งระดับ ${g}</option>`+S.init.classes[g].map(r=>`<option value="${g}/${r}"${REP.cls===g+'/'+r?' selected':''}>${g}/${r}</option>`).join('')).join('');
+  const nOnly=d.rows.filter(r=>!r.measures.length).length, nMeas=d.rows.length-nOnly;
+  const docBtn = r => !r.measures.length
+    ? `<button type="button" class="btn sm" data-repdeduct="${esc(r.log_id)}">🖨 รายงานการหักคะแนน</button>`
+    : `<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start"><button type="button" class="btn sm ${r.filled?'':'gold'}" data-repform="${esc(r.log_id)}">${r.filled?'แก้ไขบันทึกพฤติกรรม':'กรอกบันทึกพฤติกรรม'}</button>${r.filled?`<button type="button" class="btn sm" data-repprint="${esc(r.log_id)}">🖨 พิมพ์บันทึกพฤติกรรม</button>`:''}</div>`;
+  $('page').innerHTML = ptitle('คะแนนความประพฤติ','พิมพ์รายงานการหักคะแนน และบันทึกพฤติกรรม (กรณีมีมาตรการเพิ่มเติม)')+scTabs('rep')+
+  `<div class="cols"><div class="card main">
+    <div class="row" style="align-items:flex-end">
+      <label class="f">ตั้งแต่วันที่<input type="date" id="rpF" value="${REP.from}"></label><label class="f">ถึงวันที่<input type="date" id="rpT" value="${REP.to}" max="${iso()}"></label>
+      <label class="f">ชั้นเรียน<select id="rpC"><option value="">ทั้งหมด</option>${clsOpts}</select></label>
+      <label class="f" style="flex:2 1 180px">ค้นหา<input id="rpQ" value="${esc(REP.q)}" placeholder="ชื่อ รหัส หรือรายการ"></label>
+      <button type="button" class="btn pri" id="rpGo">ค้นหา</button></div>
+    <div class="chips" style="margin:12px 0">${[['all','ทั้งหมด '+d.rows.length],['only','หักคะแนนอย่างเดียว'],['meas','มีมาตรการเพิ่มเติม']].map(([v,l])=>`<button type="button" class="chip${REP.filter===v?' on':''}" data-repf="${v}">${l}</button>`).join('')}</div>
+    ${d.rows.length?`<div class="tw"><table><tr><th>วันที่</th><th>นักเรียน</th><th>รายการ</th><th class="n">หัก</th><th>มาตรการเพิ่มเติม</th><th>เอกสาร</th></tr>
+      ${d.rows.map(r=>`<tr><td class="small" style="white-space:nowrap">${thDate(r.date)}</td><td><b style="font-weight:500">${esc(r.name)}</b><div class="xs muted">${esc(r.student_id)} · ${esc(r.cls)}</div></td><td class="small">${esc(r.item)}</td><td class="n"><b style="color:#8E1F1F">−${r.points}</b></td>
+        <td>${r.measures.map(m=>`<span class="mpill">${esc(m)}</span>`).join('')||'<span class="muted">—</span>'}</td><td>${docBtn(r)}${r.doc_no?`<div class="xs muted" style="margin-top:4px">${esc(r.doc_no)}${r.printed_at?' · พิมพ์ '+thStamp(r.printed_at):''}</div>`:''}</td></tr>`).join('')}</table></div>`:'<div class="empty">ไม่พบรายการหักคะแนนในช่วงที่เลือก</div>'}
+    ${d.total>d.rows.length?`<div class="xs muted" style="margin-top:6px">แสดง ${d.rows.length} จาก ${d.total} รายการ — ปรับช่วงวันที่ให้แคบลง</div>`:''}
+    <div class="xs muted" style="margin-top:8px">หักคะแนนอย่างเดียว → พิมพ์รายงานการหักคะแนนได้ทันที · มีมาตรการเพิ่มเติม → กรอกบันทึกพฤติกรรมก่อนแล้วจึงพิมพ์ · พิมพ์ซ้ำได้ เลขที่เอกสารคงเดิม</div>
+  </div>
+  <div class="card side"><h2>ผู้ลงนามในเอกสาร</h2><p class="xs muted">ติ๊กเลือกผู้ลงนาม แก้ชื่อ/ตำแหน่งได้ · เป็นค่าเริ่มต้นของทั้ง 2 เอกสาร (ปรับเฉพาะฉบับได้ตอนพิมพ์)</p>
+    <div id="sgBox">${signerEditor(d.signers)}</div><button type="button" class="btn pri" id="sgSave" style="width:100%;margin-top:10px">บันทึกค่าผู้ลงนาม</button></div></div>`;
+  const go=()=>{ REP.from=$('rpF').value; REP.to=$('rpT').value; REP.cls=$('rpC').value; REP.q=$('rpQ').value.trim(); pReports(); };
+  $('rpGo').onclick=go; $('rpC').onchange=go; $('rpQ').onkeydown=e=>{ if(e.key==='Enter') go(); };
+  document.querySelectorAll('[data-repf]').forEach(b=>b.onclick=()=>{ REP.filter=b.dataset.repf; pReports(); });
+  $('sgSave').onclick=async()=>{ const r=await run(api('docSignersSave',{ signers:readSigners('sgBox') })); if(r){ S.signers=r; toast('บันทึกค่าผู้ลงนามแล้ว'); } };
+  document.querySelectorAll('[data-repdeduct]').forEach(b=>b.onclick=()=>printDeductFlow(b.dataset.repdeduct));
+  document.querySelectorAll('[data-repform]').forEach(b=>b.onclick=()=>pBehaviorForm(b.dataset.repform));
+  document.querySelectorAll('[data-repprint]').forEach(b=>b.onclick=()=>printBehaviorFlow(b.dataset.repprint));
+}
+function signerEditor(list){
+  return (list||[]).map((s,i)=>`<div class="sg${s.on?' on':''}" data-sg="${i}"><label style="display:flex;gap:8px;align-items:center;font-weight:600;color:var(--navy)"><input type="checkbox" data-k="on" ${s.on?'checked':''} style="width:20px;min-height:20px"> ลงนาม${s.code?` <span class="xs muted">(${esc(s.code)})</span>`:''}</label>
+    <label class="f">ชื่อ<input data-k="name" value="${esc(s.name)}"></label><label class="f">ตำแหน่ง<input data-k="pos" value="${esc(s.pos)}"></label><input type="hidden" data-k="code" value="${esc(s.code||'')}"></div>`).join('');
+}
+function readSigners(boxId){ return [...$(boxId).querySelectorAll('[data-sg]')].map(el=>({ code:el.querySelector('[data-k=code]').value, name:el.querySelector('[data-k=name]').value.trim(), pos:el.querySelector('[data-k=pos]').value.trim(), on:el.querySelector('[data-k=on]').checked })); }
+document.addEventListener('change', e=>{ const t=e.target; if(t.matches('.sg [data-k=on]')) t.closest('.sg').classList.toggle('on', t.checked); });
+
+async function printDeductFlow(logId){
+  const d = await run(api('reportDoc',{ log_id:logId })); if(!d) return;
+  const sg = d.doc && d.doc.signers && d.doc.signers.length ? d.doc.signers : d.signers;
+  modal(`<h2 style="font-size:20px">พิมพ์รายงานการหักคะแนน</h2><p class="small muted">${esc(d.student.name)} · ${esc(d.student.grade+'/'+d.student.room)} · ${esc(d.item)} (−${d.points})${d.doc?' · '+esc(d.doc.doc_no):' · เลขที่เอกสารจะออกเมื่อพิมพ์ครั้งแรก'}</p>
+    <h3 style="font-size:16px;margin:12px 0 6px">ผู้ลงนาม (ฉบับนี้)</h3><div id="pdSg">${signerEditor(sg)}</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-close>ยกเลิก</button><button type="button" class="btn pri" id="pdGo">🖨 พิมพ์</button></div>`);
+  $('pdGo').onclick=async()=>{ const w=window.open('','_blank'); const r=await run(api('docSave',{ log_id:logId, signers:readSigners('pdSg'), print:true }));
+    if(!r){ if(w) w.close(); return; } closeModal(); printDoc(w, r); if(S.page==='scores'&&S.scTab==='rep') pReports(); };
+}
+async function printBehaviorFlow(logId){
+  const w=window.open('','_blank');
+  const d = await run(api('reportDoc',{ log_id:logId })); if(!d||!d.doc){ if(w) w.close(); return; }
+  const r = await run(api('docSave',Object.assign({}, d.doc, { log_id:logId, print:true }))); if(!r){ if(w) w.close(); return; }
+  printDoc(w, r); if(S.page==='scores'&&S.scTab==='rep') pReports();
+}
+async function pBehaviorForm(logId){
+  const d = await run(api('reportDoc',{ log_id:logId })); if(!d) return;
+  const x = d.doc || {}, st=d.student, sg = x.signers && x.signers.length ? x.signers : d.signers;
+  const meas = d.measures.map(m=>`<div>• ${esc(m.name)}${m.end?` <span class="muted">(${thDate(m.start)} – ${thDate(m.end)})</span>`:''}</div>`).join('');
+  $('page').innerHTML = ptitle('บันทึกพฤติกรรมนักเรียน', x.doc_no?'เลขที่ '+esc(x.doc_no):'เลขที่เอกสารจะออกเมื่อบันทึกครั้งแรก', '<button type="button" class="btn" id="bfBack">‹ กลับไปรายงาน</button>')+
+  `<div class="card"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px"><div><b style="font-size:19px;color:var(--navy)">${esc(st.name)}</b> ${typePill(st.type)}<div class="small muted">เลขประจำตัว ${esc(st.id)} · ชั้น ${esc(st.grade+'/'+st.room)}${st.number?' เลขที่ '+esc(st.number):''} · ครูที่ปรึกษา ${esc(st.advisors.join(', ')||'-')}</div></div><div class="xs muted" style="text-align:right">ข้อมูลจากรายการคะแนน (แก้ที่นี่ไม่ได้)</div></div>
+    <div class="grid" style="margin-top:12px"><div class="card kpi" style="border:1px solid var(--line)"><div class="l">วันที่บันทึกคะแนน</div><div class="v" style="font-size:18px">${thDate(d.date)}</div></div>
+      <div class="card kpi" style="border:1px solid var(--line)"><div class="l">รายการ</div><div class="v" style="font-size:16px">${esc(d.item)}</div></div>
+      <div class="card kpi" style="border:1px solid var(--line);background:#F6E3E1"><div class="l">หักคะแนน</div><div class="v" style="font-size:20px;color:#7A1A1A">−${d.points} (${d.before} → ${d.after})</div></div></div></div>
+  <div class="card"><h2>1. รายละเอียดพฤติกรรม</h2><div class="row">
+    <label class="f">วันที่เกิดเหตุ<input type="date" id="bfD" value="${esc(x.incident_date||d.date)}" max="${iso()}"></label><label class="f">เวลา<input id="bfTm" value="${esc(x.incident_time||'')}" placeholder="เช่น 07.50 น."></label><label class="f" style="flex:2 1 200px">สถานที่<input id="bfPl" value="${esc(x.place||'')}"></label></div>
+    <label class="f" style="margin-top:10px">พฤติกรรมที่พบ (จำเป็น)<textarea id="bfB" rows="4">${esc(x.behavior||d.note||'')}</textarea></label>
+    <label class="f" style="margin-top:10px">ผู้พบเห็น/ผู้รายงาน<input id="bfR" value="${esc(x.reporter||'')}"></label></div>
+  <div class="card"><h2>2. ผลการพิจารณา</h2><div style="border:1px solid var(--line);border-radius:12px;padding:12px 14px">
+    <div>☑ หักคะแนนความประพฤติ <b>${d.points}</b> คะแนน <span class="muted">(คงเหลือ ${d.after} คะแนน)</span></div><div style="margin-top:4px">☑ มาตรการเพิ่มเติม</div><div style="padding-left:22px">${meas||'<span class="muted">-</span>'}</div>
+    <div class="xs muted" style="margin-top:6px">ดึงจากรายการคะแนนโดยอัตโนมัติ · แก้คะแนน/มาตรการได้ที่เมนูบันทึกคะแนน (ยกเลิกแล้วบันทึกใหม่)</div></div>
+    <label class="f" style="margin-top:10px">ความเห็น/ข้อสั่งการเพิ่มเติม (ถ้ามี)<textarea id="bfC" rows="2">${esc(x.comment||'')}</textarea></label></div>
+  <div class="card"><h2>3. ผู้ลงชื่อรับทราบ</h2><div class="row">
+    <label class="f">นักเรียน<input value="${esc(st.name)}" disabled></label><label class="f" style="flex:2 1 220px">ชื่อผู้ปกครอง (แก้ไขได้)<input id="bfG" value="${esc(x.guardian_name||st.guardian_name)}"></label><label class="f">ความเกี่ยวข้อง<input id="bfGR" value="${esc(x.guardian_relation||st.guardian_relation)}"></label></div>
+    ${can('student.edit')?`<label style="display:flex;gap:10px;align-items:center;margin-top:10px"><input type="checkbox" id="bfUpd" style="width:20px;min-height:20px"> อัปเดตชื่อผู้ปกครองนี้ในข้อมูลนักเรียนด้วย (ถ้าไม่ติ๊ก ใช้เฉพาะในเอกสารฉบับนี้)</label>`:''}</div>
+  <div class="card"><h2>4. ผู้ลงนาม</h2><div id="bfSg" class="sg-grid">${signerEditor(sg)}</div></div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin:6px 0 30px"><button type="button" class="btn" id="bfCancel">ยกเลิก</button><button type="button" class="btn" id="bfSave">บันทึก</button><button type="button" class="btn pri" id="bfPrint">🖨 บันทึกและพิมพ์</button></div>`;
+  const back=()=>{ S.scTab='rep'; pReports(); };
+  $('bfBack').onclick=back; $('bfCancel').onclick=back;
+  const save=async(print)=>{
+    const body={ log_id:logId, incident_date:$('bfD').value, incident_time:$('bfTm').value, place:$('bfPl').value, behavior:$('bfB').value, reporter:$('bfR').value, comment:$('bfC').value,
+      guardian_name:$('bfG').value, guardian_relation:$('bfGR').value, updateGuardian:!!($('bfUpd')&&$('bfUpd').checked), signers:readSigners('bfSg'), print };
+    if(body.behavior.trim().length<5) return toast('กรุณากรอกรายละเอียดพฤติกรรม', true);
+    const w = print ? window.open('','_blank') : null;
+    const r=await run(api('docSave',body)); if(!r){ if(w) w.close(); return; }
+    toast('บันทึกแล้ว '+r.doc.doc_no); if(print) printDoc(w, r); back();
+  };
+  $('bfSave').onclick=()=>save(false); $('bfPrint').onclick=()=>save(true);
+}
+
+/** สร้างหน้าพิมพ์ A4 ในหน้าต่างใหม่ */
+function printDoc(w, d){
+  if(!w){ toast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — อนุญาตป๊อปอัปสำหรับเว็บนี้แล้วลองใหม่', true); return; }
+  const x=d.doc||{}, st=d.student, logo=new URL('../assets/kjst-logo.png', location.href).href;
+  const sg=(x.signers&&x.signers.length?x.signers:d.signers).filter(s=>s.on);
+  const sign = s => `<div class="sgn">ลงชื่อ ................................................<div>( ${esc(s.name)} )</div><div>${esc(s.pos)}</div></div>`;
+  const signs = `<div class="sgns">${sg.map((s,i)=>`<div class="${sg.length%2===1&&i===sg.length-1?'full':''}">${sign(s)}</div>`).join('')}</div>`;
+  const kind=x.kind||d.kind, title=kind==='บพ'?'บันทึกพฤติกรรมนักเรียน':'รายงานการหักคะแนนความประพฤตินักเรียน';
+  const head = `<div class="hd"><img src="${logo}" alt=""><div class="t"><h1>${title}</h1><div>กลุ่มบริหารงานกิจการนักเรียน โรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี</div></div><div class="no">เลขที่ <b>${esc(x.doc_no||'')}</b><br>วันที่ ${thLong(kind==='บพ'?(x.incident_date||d.date):d.date)}</div></div>`;
+  const foot = `<div class="ft"><span>พิมพ์จากระบบ KJST Shield เมื่อ ${thStamp(d.printedAt)}</span><span>อ้างอิงรายการ ${esc(d.log_id)}</span></div>`;
+  let body;
+  if(kind==='บพ'){
+    const meas=d.measures.map(m=>`– ${esc(m.name)}${m.end?` ระหว่างวันที่ ${thLong(m.start)} – ${thLong(m.end)}`:''}`).join('<br>');
+    body = `${head}
+    <h2>1. ข้อมูลนักเรียน</h2><p>ชื่อ – นามสกุล <b>${esc(st.name)}</b> &nbsp; เลขประจำตัว ${esc(st.id)} &nbsp; ชั้น ${esc(st.grade+'/'+st.room)}${st.number?' เลขที่ '+esc(st.number):''} &nbsp; ประเภท ${esc(st.type)}<br>
+      ครูที่ปรึกษา ${esc(st.advisors.join(', ')||'-')} &nbsp; ผู้ปกครอง ${esc(x.guardian_name||st.guardian_name||'-')}${(x.guardian_relation||st.guardian_relation)?' ('+esc(x.guardian_relation||st.guardian_relation)+')':''}${st.phone?' โทร '+esc(st.phone):''}</p>
+    <h2>2. รายละเอียดพฤติกรรม</h2><p>วันที่เกิดเหตุ ${thLong(x.incident_date||d.date)}${x.incident_time?' เวลา '+esc(x.incident_time):''}${x.place?' สถานที่ '+esc(x.place):''}${x.reporter?'<br>ผู้พบเห็น/ผู้รายงาน '+esc(x.reporter):''}</p>
+    <div class="box">${esc(x.behavior||'').replace(/\n/g,'<br>')}</div>
+    <h2>3. ผลการพิจารณา</h2><p>☑ หักคะแนนความประพฤติ จำนวน <b>${d.points}</b> คะแนน ตามรายการ "${esc(d.item)}" &nbsp;คะแนนคงเหลือ <b>${d.after}</b> คะแนน</p>
+    ${d.measures.length?`<p>☑ มาตรการเพิ่มเติม<br><span style="padding-left:22px;display:inline-block">${meas}</span></p>`:''}
+    ${x.comment?`<p>ความเห็น/ข้อสั่งการเพิ่มเติม: ${esc(x.comment).replace(/\n/g,'<br>')}</p>`:''}
+    <h2>4. การรับทราบ</h2><p class="ind">ข้าพเจ้าได้รับทราบพฤติกรรมและผลการพิจารณาข้างต้นแล้ว และยินดีปฏิบัติตามมาตรการที่โรงเรียนกำหนด โดยจะไม่กระทำผิดซ้ำอีก</p>
+    <div class="sgns ack"><div><div class="sgn">ลงชื่อ ................................................ นักเรียน<div>( ${esc(st.name)} )</div></div></div>
+      <div><div class="sgn">ลงชื่อ ................................................ ผู้ปกครอง<div>( ${esc(x.guardian_name||st.guardian_name||'................................................')} )</div>${(x.guardian_relation||st.guardian_relation)?`<div>ความเกี่ยวข้อง ${esc(x.guardian_relation||st.guardian_relation)}</div>`:''}</div></div></div>
+    <div class="grow"></div><div class="line">${signs}</div>${foot}`;
+  } else {
+    body = `${head}
+    <h2>ข้อมูลนักเรียน</h2><table><tr><td class="k">ชื่อ – นามสกุล</td><td colspan="3">${esc(st.name)}</td></tr>
+      <tr><td class="k">เลขประจำตัว</td><td>${esc(st.id)}</td><td class="k">ชั้น / เลขที่</td><td>${esc(st.grade+'/'+st.room)}${st.number?' เลขที่ '+esc(st.number):''}</td></tr>
+      <tr><td class="k">ประเภทนักเรียน</td><td>${esc(st.type)}</td><td class="k">ครูที่ปรึกษา</td><td>${esc(st.advisors.join(', ')||'-')}</td></tr></table>
+    <h2>รายละเอียดการหักคะแนน</h2><table><tr><th style="width:20%">วันที่</th><th>รายการ</th><th style="width:14%;text-align:right">หักคะแนน</th></tr>
+      <tr><td>${thDate(d.date)}</td><td>${esc(d.item)}<div class="sm">หมวด ${esc(d.category||'-')}${d.note?' · หมายเหตุ: '+esc(d.note):''}</div></td><td style="text-align:right"><b>${d.points}</b></td></tr></table>
+    <div class="kp"><div>คะแนนก่อนหัก<b>${d.before}</b></div><div>คะแนนที่หัก<b>${d.points}</b></div><div class="hl">คะแนนคงเหลือ<b>${d.after}</b></div></div>
+    <p class="sm2">ผลรับรองความประพฤติ: <b>${esc(d.cert)}</b> · คะแนนสะสมตลอดช่วงชั้น (${esc(d.stage)}) ฐาน 100 คะแนน<br>ผู้บันทึกคะแนน: ${esc(d.recorded_by)} · บันทึกเมื่อ ${thStamp(d.recorded_at)}</p>
+    <div class="grow"></div>${signs}${foot}`;
+  }
+  w.document.open();
+  w.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(x.doc_no||title)} ${esc(st.name)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>@page{size:A4;margin:0}*{box-sizing:border-box}body{margin:0;background:#eee;font-family:'Sarabun',sans-serif;color:#111}
+  .pg{width:210mm;min-height:297mm;margin:0 auto;background:#fff;padding:14mm 16mm 12mm;display:flex;flex-direction:column;font-size:15.5px;line-height:1.55}
+  .hd{display:flex;align-items:center;gap:14px;border-bottom:2px solid #12245A;padding-bottom:10px}.hd img{height:74px}.hd .t{flex:1}.hd h1{margin:0;font-size:22px;color:#12245A}.hd .no{font-size:13.5px;text-align:right}
+  h2{font-size:16.5px;color:#12245A;margin:14px 0 4px}p{margin:2px 0}.ind{text-indent:32px}
+  table{width:100%;border-collapse:collapse;font-size:15px}td,th{border:1px solid #888;padding:6px 10px;text-align:left;vertical-align:top}.k,th{background:#f3f3f3;width:24%}
+  .sm{font-size:13px;color:#444}.sm2{font-size:14px;margin-top:10px}.box{border:1px solid #888;border-radius:6px;padding:8px 12px;min-height:70px;margin-top:4px}
+  .kp{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.kp div{border:1px solid #888;border-radius:6px;padding:8px 12px}.kp b{display:block;font-size:22px}.kp .hl{border:2px solid #12245A;color:#12245A}
+  .grow{flex:1;min-height:16px}.sgns{display:grid;grid-template-columns:1fr 1fr;row-gap:30px;column-gap:24px;text-align:center}.sgns .full{grid-column:1/-1;justify-self:center;width:62%}
+  .sgns.ack{margin-top:18px}.line{border-top:1px dashed #888;padding-top:14px}
+  .ft{margin-top:18px;border-top:1px solid #888;padding-top:6px;font-size:12px;color:#444;display:flex;justify-content:space-between}
+  .bar{position:fixed;top:10px;right:10px}.bar button{font:inherit;font-size:16px;padding:10px 18px;border-radius:10px;border:0;background:#12245A;color:#fff;cursor:pointer}
+  @media print{body{background:#fff}.bar{display:none}.pg{margin:0}}</style></head>
+  <body><div class="bar"><button onclick="window.print()">🖨 พิมพ์</button></div><div class="pg">${body}</div>
+  <script>window.onload=function(){setTimeout(function(){window.print()},600)}<\/script></body></html>`);
+  w.document.close();
 }
 /* มาตรการเพิ่มเติม (เลือกได้หลายข้อ · กลุ่มเดียวกันเลือกได้ 1) */
 function measPicker(it, pre){
