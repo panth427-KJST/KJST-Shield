@@ -89,6 +89,13 @@ main{max-width:1280px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-dir
 .sg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}.sg-grid .sg{margin:0}
 .nbadge{display:inline-block;min-width:22px;padding:1px 7px;border-radius:999px;background:#C0392B;color:#fff;font-size:12px;font-weight:700;margin-left:4px}
 .reqcard{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0;background:#fff}
+.gf{color:#B00000;font-weight:700}
+.gtab td,.gtab th{padding:8px 9px}
+details.gterm{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0;background:#fff}
+details.gterm summary{cursor:pointer;color:var(--navy);font-size:16px}
+.gchips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.gchips>div{border:1px solid var(--line);border-radius:10px;padding:4px 12px;background:#FCFAF4;display:flex;flex-direction:column;min-width:96px}
+.gchips span{font-size:13px;color:var(--muted)}.gchips b{color:var(--navy);font-size:16px}
 .mc-tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line);margin-top:14px}
 .mc-tabs button{min-height:46px;padding:0 18px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font-size:16px;font-weight:500;margin-bottom:-2px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
 .mc-tabs button.on{border-bottom-color:var(--gold);color:var(--navy);font-weight:600}
@@ -290,7 +297,9 @@ async function enter(){
   const d = await api('init');
   S.init = d;
   $('login').hidden = true;
-  if(d.user.kind === 'student'){ $('stu').hidden=false; $('app').hidden=true; const r = await api('myReport'); $('stuBody').innerHTML = '<div class="card">'+report(r,false)+'</div>'; return; }
+  if(d.user.kind === 'student'){ $('stu').hidden=false; $('app').hidden=true; const r = await api('myReport'); $('stuBody').innerHTML = '<div class="card">'+report(r,false)+'</div><div id="myGr"></div>';
+    api('myGrades').then(g=>{ S.myGrades=g; if(!g.terms.length||!$('myGr')) return; $('myGr').innerHTML=`<div class="card" style="margin-top:14px"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">ผลการเรียน</h2><button type="button" class="btn sm" data-gprint="self">🖨 พิมพ์รายงาน</button></div>`+gradeStudentHtml(g)+'<p class="xs muted" style="margin-top:8px">ข้อมูลจาก KJST e-Score หลังประกาศผล · หากข้อมูลไม่ถูกต้องติดต่อครูประจำวิชาหรือครูที่ปรึกษา</p></div>'; }).catch(()=>{});
+    return; }
   $('stu').hidden = true; $('app').hidden = false;
   $('ybadge').textContent = 'ปีการศึกษา '+d.year+' · ภาค '+d.term;
   $('whoName').textContent = d.user.name; $('whoRole').textContent = d.user.roleNames.join(' · ');
@@ -307,6 +316,7 @@ const PAGES = [
   { id:'dashboard', label:'แดชบอร์ด', show:()=>can('dashboard.view'), render:pDashboard },
   { id:'myclass', label:'ชั้นเรียนของฉัน', show:()=>can('dashboard.view') && hasMyClass(), render:pMyClass },
   { id:'students', label:'ข้อมูลนักเรียน', show:()=>can('student.view'), render:pStudents },
+  { id:'grades', label:'ผลการเรียน', show:()=>can('grades.view'), render:()=>pGrades() },
   { id:'scores', label:'คะแนนความประพฤติ', show:()=>can('score.record'), render:pScores },
   { id:'care', label:'ติดตามและส่งต่อ', show:()=>can('student.view'), render:pCare },
   { id:'shield', label:'KJST SHIELD', show:()=>can('dashboard.view'), render:pShield },
@@ -719,8 +729,10 @@ function editStudent(d){
 }
 async function openStudent(id){
   const d = await run(api('student',{ id })); if(!d) return;
-  modal(`<div style="text-align:right" class="no-print"><button type="button" class="btn sm" data-close>ปิด</button></div>`+report(d,true));
+  modal(`<div style="text-align:right" class="no-print"><button type="button" class="btn sm" data-close>ปิด</button></div>`+report(d,true)+(can('grades.view')?'<div id="stuGr"></div>':''));
   if($('stuEdit')) $('stuEdit').onclick=()=>editStudent(d);
+  if(can('grades.view')) api('gradeStudent',{ id }).then(r=>{ const el=$('stuGr'); if(!el) return; S.stuGrades=r; if(!r.terms.length) return;
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:20px 0 4px"><h3 style="font-size:17px;margin:0">ผลการเรียน (KJST e-Score)</h3><button type="button" class="btn sm" data-gprint="modal">🖨 รายงานรายบุคคล</button></div>`+gradeStudentHtml(r); }).catch(()=>{});
 }
 function report(d, staff){
   const att = d.days ? `มา ${d.P} · ราชการ ${d.O} · สาย ${d.L} · ลา ${d.LV} · ขาด ${d.A}` : 'ยังไม่มีข้อมูลเช็กชื่อ';
@@ -746,6 +758,278 @@ function report(d, staff){
   if(d.dressLog && d.dressLog.length) h += `<h3 style="font-size:17px;margin:18px 0 8px">ประวัติการตรวจระเบียบการแต่งกาย</h3><div class="tw"><table><tr><th>วันที่</th><th>ปี/ภาค</th><th>รายการที่ผิด</th><th>หมายเหตุ</th></tr>${d.dressLog.map(a=>`<tr><td class="small">${thDate(a.date)}</td><td>${esc(a.year+'/'+a.term)}</td><td class="small">${esc(a.items)}</td><td class="small">${esc(a.note||'-')}${staff&&a.by?'<div class="xs muted">'+esc(a.by)+'</div>':''}</td></tr>`).join('')}</table></div>`;
   if(staff && d.care) h += `<h3 style="font-size:17px;margin:18px 0 8px">การติดตาม เยี่ยมบ้าน ส่งต่อ</h3>`+careTable(d.care,false);
   return h;
+}
+
+/* ----- ผลการเรียน (KJST e-Score) ----- */
+const GR = { term:'', view:'', key:'', checked:false, d:null, sid:'', sroom:'', sterm:'' };
+const GVIEW = { school:'ภาพรวมโรงเรียน', grade:'ระดับชั้น', room:'ห้องเรียน', student:'รายคน' };
+const BANDS = ['3.50–4.00','3.00–3.49','2.50–2.99','2.00–2.49','ต่ำกว่า 2.00'];
+const BANDC = ['#1B3170','#5B78C0','#C9A227','#D9822B','#8E1F1F'];
+const g2 = v => v==null||v==='' ? '–' : Number(v).toFixed(2);
+const gflags = f => (f||[]).map(x=>` <span class="gf">(${esc(x)})</span>`).join('');
+const gcell = x => x ? g2(x.avg)+gflags(x.f) : '';
+const gradeTxt = s => s.st ? s.st : (s.g===''||s.g==null ? '–' : String(s.g));
+const isBadSub = s => !!s.st || s.g===0;
+const badTxt = r => (r.n0+r.nr+r.nms) ? [r.n0?'0 = '+r.n0:'', r.nr?'ร = '+r.nr:'', r.nms?'มส = '+r.nms:''].filter(Boolean).join(' · ') : '';
+function groupsUsed(list, order){ const u={}; list.forEach(x=>Object.keys(x.groups||{}).forEach(k=>u[k]=1)); return order.filter(k=>u[k]).concat(Object.keys(u).filter(k=>order.indexOf(k)<0)); }
+function bandBar(b, n){ return `<div class="bar" style="height:16px;min-width:120px">${b.map((v,i)=>v?`<i style="width:${v/n*100}%;background:${BANDC[i]}" title="${BANDS[i]}: ${v} คน"></i>`:'').join('')}</div>`; }
+const bandLegend = () => `<div class="legend">${BANDS.map((l,i)=>`<span><i style="background:${BANDC[i]}"></i>${l}</span>`).join('')}</div>`;
+
+async function pGrades(view, key){
+  if(view){ GR.view=view; if(key!==undefined) GR.key=key; }
+  if(GR.view==='student') return pGradeStudent();
+  const d = await run(api('grades',{ term:GR.term, view:GR.view, key:GR.key, check:!GR.checked })); if(!d) return;
+  GR.checked=true; GR.d=d;
+  if(d.auto && d.auto.synced && d.auto.synced.length) toast('พบผลการเรียนที่เผยแพร่ใหม่ ซิงก์แล้ว: '+d.auto.synced.map(x=>x.term+' '+x.grade).join(', '));
+  if(d.empty){
+    $('page').innerHTML = ptitle('ผลการเรียน','ข้อมูลจาก KJST e-Score')+`<div class="card"><div class="empty">ยังไม่มีข้อมูลผลการเรียนในระบบ${d.canSync?' — กด “ซิงก์ผลการเรียน” เพื่อดึงผลที่ประกาศแล้วจาก KJST e-Score':' — รอผู้ดูแลระบบซิงก์ข้อมูลจาก KJST e-Score'}</div>
+      ${d.canSync?'<div style="text-align:center"><button type="button" class="btn pri" id="gSync">ซิงก์ผลการเรียน</button></div>':''}</div>`;
+    bindGSync(); return;
+  }
+  GR.term=d.term; GR.view=d.view; GR.key=d.key;
+  const k=d.kpi;
+  let body = `<div class="grid" style="margin-top:14px">
+    <div class="card kpi"><div class="l">นักเรียน</div><div class="v">${fmt(k.n)}</div><div class="s">มีผลการเรียน ${fmt(k.withGpa)} คน</div></div>
+    <div class="card kpi"><div class="l">GPA เฉลี่ย</div><div class="v">${g2(k.avg)}</div><div class="s">${d.view==='room'?'ระดับชั้น '+g2(d.gradeAvg):'เฉลี่ยจาก GPA รายคน'}</div></div>
+    <div class="card kpi"><div class="l">ติด 0 / ร / มส</div><div class="v" style="color:${k.bad?'#8E1F1F':'var(--navy)'}">${fmt(k.bad)} <span style="font-size:16px">คน</span></div><div class="s">0 = ${k.n0} · ร = ${k.nr} · มส = ${k.nms} รายการ</div></div>
+    <div class="card kpi"><div class="l">GPA ต่ำกว่า 2.00</div><div class="v">${fmt(k.lt2)}</div><div class="s">คน</div></div>
+    <div class="card kpi"><div class="l">กิจกรรมไม่ผ่าน (มผ)</div><div class="v">${fmt(k.actFail)}</div><div class="s">คน</div></div>
+  </div>`;
+  if(d.view==='school' || d.view==='grade'){
+    const next = d.view==='school'?'grade':'room';
+    body += `<div class="card" style="margin-top:14px"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:10px"><h2 style="margin:0">${d.view==='school'?'แยกตามระดับชั้น':'แยกตามห้องเรียน'}</h2>${bandLegend()}</div>
+      <div class="tw"><table><tr><th>${d.view==='school'?'ระดับชั้น':'ห้อง'}</th><th class="n">นักเรียน</th><th class="n">GPA เฉลี่ย</th><th>การกระจาย GPA</th><th class="n">3.50+</th><th class="n">&lt; 2.00</th><th class="n">ติด 0/ร/มส (คน)</th><th class="n">0</th><th class="n">ร</th><th class="n">มส</th></tr>
+      ${d.parts.map(p=>{ const ok=d.view==='school'?d.options.grades.indexOf(p.key)>=0:d.options.rooms.some(r=>r.v===p.key);
+        return `<tr class="${ok?'click':''}" ${ok?`data-gview="${next}" data-gkey="${esc(p.key)}"`:''}><td><b>${esc(p.key)}</b></td><td class="n">${fmt(p.n)}</td><td class="n"><b>${g2(p.avg)}</b></td><td>${bandBar(p.bands,p.withGpa||1)}</td><td class="n">${p.bands[0]}</td><td class="n">${p.lt2}</td>
+        <td class="n" style="${p.bad?'color:#8E1F1F;font-weight:700':''}">${p.bad}</td><td class="n">${p.n0}</td><td class="n">${p.nr}</td><td class="n">${p.nms}</td></tr>`; }).join('')}</table></div></div>`;
+    if(d.groupAvg && d.groupAvg.length){
+      const gs=d.groups.filter(g=>d.groupAvg.some(r=>r[g]!=null));
+      body += `<div class="card" style="margin-top:14px"><h2>ค่าเฉลี่ยรายกลุ่มสาระ แยกตามห้อง</h2><p class="xs muted" style="margin:-6px 0 10px">ค่าเฉลี่ยของค่าเฉลี่ยกลุ่มรายคน (คิดจากทุกรายวิชาในกลุ่มที่ตัดสินผลแล้ว)</p>
+        <div class="tw"><table><tr><th>ห้อง</th>${gs.map(g=>`<th class="n">${esc(g)}</th>`).join('')}</tr>
+        ${d.groupAvg.map(r=>`<tr><td><b>${esc(r.key)}</b></td>${gs.map(g=>`<td class="n" style="${r[g]!=null&&r[g]<2?'color:#8E1F1F;font-weight:700':''}">${g2(r[g])}</td>`).join('')}</tr>`).join('')}</table></div></div>`;
+    }
+    body += subjectCard(d.subjects, 'รายวิชาที่มีผลการเรียน 0 / ร / มส มากที่สุด', true);
+  }
+  if(d.view==='room'){
+    const gs=groupsUsed(d.students, d.groups);
+    body += `<div class="card" style="margin-top:14px"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:10px"><h2 style="margin:0">รายชื่อนักเรียน ${esc(d.key)}</h2>
+        <span class="xs muted">ค่าในกลุ่มสาระ = เฉลี่ยถ่วงหน่วยกิตของวิชาที่ตัดสินผลแล้ว · <span class="gf">(0)</span> มีวิชาได้ 0 · <span class="gf">(ร)/(มส)</span> ยังไม่ตัดสิน</span></div>
+      <div class="tw"><table class="gtab"><tr><th class="n">ที่</th><th>ชื่อ – นามสกุล</th>${gs.map(g=>`<th class="n">${esc(g)}</th>`).join('')}<th class="n">GPA</th><th class="n">อันดับ</th><th class="n">หน่วยกิต</th><th>0/ร/มส</th><th class="n">คะแนน<br>ความประพฤติ</th><th class="n">มาเรียน</th></tr>
+      ${d.students.map(s=>`<tr class="click" data-gsid="${esc(s.id)}"><td class="n">${s.no<999?s.no:''}</td><td style="white-space:nowrap">${esc(s.name)}</td>${gs.map(g=>`<td class="n" style="white-space:nowrap">${gcell(s.groups[g])}</td>`).join('')}
+        <td class="n"><b style="${s.gpa!=null&&s.gpa<2?'color:#8E1F1F':''}">${g2(s.gpa)}</b></td><td class="n">${s.rk==null?'–':s.rk+'/'+s.rkN}</td><td class="n">${s.crGet}/${s.crReg}</td>
+        <td class="small" style="${s.n0+s.nr+s.nms?'color:#8E1F1F;font-weight:600':''}">${esc(badTxt(s))||'–'}</td><td class="n">${s.score}</td><td class="n">${s.rate==null?'–':s.rate+'%'}</td></tr>`).join('')}</table></div></div>`;
+    body += subjectCard(d.subjects, 'รายวิชาของห้อง', false);
+  }
+  const sel = d.view==='grade' ? `<label class="f" style="max-width:220px">ระดับชั้น<select id="gKey">${d.options.grades.map(g=>`<option ${g===d.key?'selected':''}>${esc(g)}</option>`).join('')}</select></label>`
+    : d.view==='room' ? `<label class="f" style="max-width:220px">ห้องเรียน<select id="gKey">${d.options.rooms.map(r=>`<option value="${esc(r.v)}" ${r.v===d.key?'selected':''}>${esc(r.v)}${r.own?' (ห้องของฉัน)':''}</option>`).join('')}</select></label>` : '';
+  const prints = d.view==='room'
+    ? `<button type="button" class="btn sm" data-gprint="room">🖨 รายงานรายห้อง</button><button type="button" class="btn sm" data-gprint="roomind">🖨 รายบุคคลทั้งห้อง</button><button type="button" class="btn sm" data-gprint="follow">🖨 รายชื่อ 0/ร/มส</button>`
+    : `<button type="button" class="btn sm" data-gprint="summary">🖨 สรุปผลการเรียน</button><button type="button" class="btn sm" data-gprint="follow">🖨 รายชื่อ 0/ร/มส</button>`;
+  $('page').innerHTML = gHead(d)+gTabs(d)+`<div class="row" style="margin-top:14px;align-items:flex-end">${sel}<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;flex:1 1 300px">${prints}</div></div>`+body;
+  bindGHead();
+  if($('gKey')) $('gKey').onchange=e=>pGrades(d.view, e.target.value);
+}
+function subjectCard(list, title, withRoomCount){
+  if(!list || !list.length) return '';
+  return `<div class="card" style="margin-top:14px"><h2>${title}</h2><div class="tw"><table><tr><th>รหัส</th><th>รายวิชา</th><th>กลุ่ม</th><th>ครูผู้สอน</th><th class="n">นักเรียน</th><th class="n">เกรดเฉลี่ย</th><th class="n">0</th><th class="n">ร</th><th class="n">มส</th></tr>
+    ${list.map(x=>`<tr><td>${esc(x.code)}</td><td>${esc(x.name)}<div class="xs muted">${esc(x.ty)} · ${x.cr} หน่วยกิต</div></td><td class="small">${esc(x.grp)}</td><td class="small">${esc(x.teachers||'-')}</td><td class="n">${x.n}</td><td class="n">${g2(x.mean)}</td>
+      <td class="n" style="${x.n0?'color:#8E1F1F;font-weight:700':''}">${x.n0}</td><td class="n" style="${x.nr?'color:#8E1F1F;font-weight:700':''}">${x.nr}</td><td class="n" style="${x.nms?'color:#8E1F1F;font-weight:700':''}">${x.nms}</td></tr>`).join('')}</table></div></div>`;
+}
+function gHead(d){
+  const right = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="gTerm" style="width:auto;min-height:38px" aria-label="ภาคเรียน">${d.terms.map(t=>`<option ${t===d.term?'selected':''}>${esc(t)}</option>`).join('')}</select>${d.canSync?'<button type="button" class="btn sm" id="gSync">ซิงก์ผลการเรียน</button>':''}</div>`;
+  return ptitle('ผลการเรียน', `ภาคเรียนที่ ${esc(d.term||GR.term)} · ข้อมูลจาก KJST e-Score${d.pub?' เผยแพร่ '+thDate(d.pub):''}`, right);
+}
+function gTabs(d){ return `<div class="mc-tabs" role="tablist">${d.options.views.map(v=>`<button type="button" role="tab" data-gview="${v}" class="${(GR.view===v)?'on':''}">${GVIEW[v]}</button>`).join('')}</div>`; }
+function bindGHead(){ if($('gTerm')) $('gTerm').onchange=e=>{ GR.term=e.target.value; GR.sterm=''; pGrades(); }; bindGSync(); }
+function bindGSync(){
+  if(!$('gSync')) return;
+  $('gSync').onclick=async()=>{
+    if(!confirm('ดึงผลการเรียนที่ประกาศแล้ว (ทุกระดับชั้น ทุกภาคเรียนที่เผยแพร่) จาก KJST e-Score มาแทนข้อมูลเดิมใน Shield?')) return;
+    const r=await run(api('gradesSync',{})); if(!r) return;
+    modal(`<h2 style="font-size:20px">ซิงก์ผลการเรียนแล้ว</h2>${r.synced.length?`<div class="tw" style="margin:10px 0"><table><tr><th>ภาคเรียน</th><th>ระดับชั้น</th><th class="n">นักเรียน</th></tr>${r.synced.map(x=>`<tr><td>${esc(x.term)}</td><td>${esc(x.grade)}</td><td class="n">${x.rows}</td></tr>`).join('')}</table></div>`:'<p>ไม่มีระดับชั้นที่เผยแพร่ผลแล้ว</p>'}
+      <div style="text-align:right"><button type="button" class="btn pri" data-close>ตกลง</button></div>`, true);
+    GR.checked=true; pGrades();
+  };
+}
+
+/* รายคน */
+async function pGradeStudent(){
+  const base = GR.d || await run(api('grades',{ term:GR.term, check:!GR.checked })); if(!base) return;
+  GR.checked=true; if(!GR.d) GR.d=base;
+  if(base.empty) { GR.view=''; return pGrades(); }
+  const rooms=base.options.rooms;
+  if(!GR.sroom || !rooms.some(r=>r.v===GR.sroom)) GR.sroom = (base.view==='room'&&base.key) || ((rooms.find(r=>r.own)||rooms[0])||{}).v;
+  const rd = (base.view==='room' && base.key===GR.sroom && base.term===GR.term) ? base : await run(api('grades',{ term:GR.term, view:'room', key:GR.sroom }));
+  if(!rd) return;
+  if(rd!==base) GR.d=rd;
+  const sts=rd.students||[];
+  if(!GR.sid || !sts.some(s=>s.id===GR.sid)) GR.sid = sts.length ? sts[0].id : '';
+  $('page').innerHTML = gHead(rd)+gTabs({options:base.options})+`<div class="row" style="margin-top:14px">
+      <label class="f" style="max-width:200px">ห้องเรียน<select id="gsRoom">${rooms.map(r=>`<option value="${esc(r.v)}" ${r.v===GR.sroom?'selected':''}>${esc(r.v)}</option>`).join('')}</select></label>
+      <label class="f" style="flex:2 1 280px">นักเรียน<select id="gsStu">${sts.map(s=>`<option value="${esc(s.id)}" ${s.id===GR.sid?'selected':''}>${s.no<999?s.no+'. ':''}${esc(s.name)}${s.n0+s.nr+s.nms?' ⚠':''}</option>`).join('')}</select></label>
+      <div style="flex:0 0 auto;display:flex;gap:8px"><button type="button" class="btn sm" id="gsPrev" aria-label="คนก่อนหน้า">‹</button><button type="button" class="btn sm" id="gsNext" aria-label="คนถัดไป">›</button></div></div>
+    <div id="gsBody" class="card" style="margin-top:14px"><div class="empty">กำลังโหลด…</div></div>`;
+  bindGHead();
+  $('gsRoom').onchange=e=>{ GR.sroom=e.target.value; GR.sid=''; pGradeStudent(); };
+  $('gsStu').onchange=e=>{ GR.sid=e.target.value; loadGS(); };
+  const step=n=>{ const i=sts.findIndex(s=>s.id===GR.sid)+n; if(i>=0&&i<sts.length){ GR.sid=sts[i].id; $('gsStu').value=GR.sid; loadGS(); } };
+  $('gsPrev').onclick=()=>step(-1); $('gsNext').onclick=()=>step(1);
+  loadGS();
+}
+async function loadGS(){
+  if(!GR.sid){ $('gsBody').innerHTML='<div class="empty">ไม่มีนักเรียนในห้องนี้</div>'; return; }
+  const r = await run(api('gradeStudent',{ id:GR.sid })); if(!r||!$('gsBody')) return;
+  GR.stu=r;
+  $('gsBody').innerHTML = `<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start"><div><h2 style="font-size:21px;margin:0">${esc(r.student.name)}</h2>
+      <div class="muted small">รหัส ${esc(r.student.id)} · ชั้น ${esc(r.student.g+'/'+r.student.r)}${r.student.no<999?' เลขที่ '+r.student.no:''} · ครูที่ปรึกษา ${esc((r.student.advisors||[]).join(', ')||'-')}</div></div>
+      <div style="display:flex;gap:8px"><button type="button" class="btn sm" data-sid="${esc(r.student.id)}">ข้อมูลการดูแล</button><button type="button" class="btn sm pri" data-gprint="stu">🖨 รายงานรายบุคคล</button></div></div>`+gradeStudentHtml(r, GR.term);
+}
+/** ผลการเรียนรายคน (ใช้ทั้งครู หน้าต่างข้อมูลนักเรียน และหน้านักเรียน/ผู้ปกครอง) */
+function gradeStudentHtml(r, focusTerm){
+  if(!r.terms.length) return '<p class="muted" style="margin-top:12px">ยังไม่มีผลการเรียนจาก KJST e-Score</p>';
+  const terms = focusTerm && r.terms.some(t=>t.term===focusTerm) ? [r.terms.find(t=>t.term===focusTerm)].concat(r.terms.filter(t=>t.term!==focusTerm)) : r.terms;
+  const t0=terms[0];
+  let h = `<div class="grid" style="margin:14px 0">
+    <div class="card kpi"><div class="l">GPA ภาคเรียน ${esc(t0.term)}</div><div class="v" style="${t0.gpa!=null&&t0.gpa<2?'color:#8E1F1F':''}">${g2(t0.gpa)}</div><div class="s">หน่วยกิต ได้ ${t0.crGet} / ลง ${t0.crReg}</div></div>
+    <div class="card kpi"><div class="l">GPAX (สะสม ${r.terms.length} ภาค)</div><div class="v">${g2(r.gpax)}</div><div class="s">จากผลที่มีใน KJST e-Score</div></div>
+    <div class="card kpi"><div class="l">อันดับ</div><div class="v">${t0.rk==null?'–':t0.rk+' / '+t0.rkN}</div><div class="s">ในห้อง · ระดับชั้น ${t0.rkG==null?'–':t0.rkG+' / '+t0.rkGN}</div></div>
+    <div class="card kpi"><div class="l">ติด 0 / ร / มส</div><div class="v" style="${t0.n0+t0.nr+t0.nms?'color:#8E1F1F':''}">${t0.n0+t0.nr+t0.nms} <span style="font-size:16px">วิชา</span></div><div class="s">${esc(badTxt(t0))||'ไม่มี'}</div></div></div>`;
+  terms.forEach((t,i)=>{
+    const gs=groupsUsed([t], r.groups);
+    h += `<details class="gterm" ${i===0?'open':''}><summary><b>ภาคเรียน ${esc(t.term)}</b> · ชั้น ${esc(t.grade+'/'+t.room)} · GPA <b>${g2(t.gpa)}</b>${t.n0+t.nr+t.nms?` · <span class="gf">${esc(badTxt(t))}</span>`:''}</summary>
+      <div class="gchips">${gs.map(g=>`<div><span>${esc(g)}</span><b>${gcell(t.groups[g])}</b></div>`).join('')}</div>
+      <div class="tw"><table><tr><th>รหัส</th><th>รายวิชา</th><th>ประเภท</th><th class="n">หน่วยกิต</th><th class="n">คะแนน</th><th class="n">ผลการเรียน</th><th class="n">เวลาเรียน</th><th>ครูผู้สอน</th></tr>
+      ${t.subs.map(s=>`<tr><td>${esc(s.c)}</td><td>${esc(s.n||s.c)}</td><td class="small">${esc(s.ty)}</td><td class="n">${s.cr}</td><td class="n">${s.t===''?'–':esc(s.t)}</td>
+        <td class="n"><b style="${isBadSub(s)?'color:#B00000':''}">${esc(gradeTxt(s))}</b></td><td class="n" style="${s.tm!==''&&s.tm<80?'color:#B00000;font-weight:600':''}">${s.tm===''?'–':esc(s.tm)+'%'}</td><td class="small">${esc(s.tc||'-')}</td></tr>`).join('')}</table></div>
+      ${t.act&&t.act.length?`<p class="small" style="margin:8px 0 0">กิจกรรมพัฒนาผู้เรียน: ${t.act.map(a=>`${esc(a.n)} <b style="${a.r==='มผ'?'color:#B00000':''}">${esc(a.r)}</b>`).join(' · ')}</p>`:''}</details>`;
+  });
+  return h;
+}
+
+/* ===== พิมพ์รายงานผลการเรียน ===== */
+function gPrintWin(w, title, pages, landscape){
+  if(!w){ toast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — อนุญาตป๊อปอัปสำหรับเว็บนี้แล้วลองใหม่', true); return; }
+  const W=landscape?'297mm':'210mm', H=landscape?'210mm':'297mm';
+  w.document.open();
+  w.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(title)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>@page{size:A4 ${landscape?'landscape':'portrait'};margin:0}*{box-sizing:border-box}body{margin:0;background:#eee;font-family:'Sarabun',sans-serif;color:#111}
+  .pg{width:${W};min-height:${H};margin:0 auto 6mm;background:#fff;padding:11mm 13mm 9mm;display:flex;flex-direction:column;font-size:14px;line-height:1.45;page-break-after:always;break-after:page}
+  .pg:last-child{page-break-after:auto;break-after:auto}
+  .hd{display:flex;align-items:center;gap:12px;border-bottom:2px solid #12245A;padding-bottom:7px}.hd img{height:60px}.hd .t{flex:1}.hd h1{margin:0;font-size:19px;color:#12245A}.hd .r{font-size:12.5px;text-align:right}
+  h2{font-size:15px;color:#12245A;margin:10px 0 4px}
+  table{width:100%;border-collapse:collapse}th,td{border:1px solid #8A8A8A;padding:3px 5px;vertical-align:top}th{background:#F1F1F1;font-weight:600}
+  .c{text-align:center}.bad{color:#B00000;font-weight:700}.gf{color:#B00000;font-weight:700}.sm{font-size:12px}.nw{white-space:nowrap}
+  .kp{display:flex;gap:8px;margin:8px 0}.kp>div{flex:1;border:1px solid #8A8A8A;border-radius:6px;padding:4px 10px;font-size:13px}.kp b{display:block;font-size:20px}
+  .grow{flex:1;min-height:8px}.sgns{display:flex;justify-content:space-around;text-align:center;gap:16px;margin-top:14px}.sgns>div{min-width:40%}
+  .ft{margin-top:8px;border-top:1px solid #8A8A8A;padding-top:3px;font-size:11px;color:#444;display:flex;justify-content:space-between;gap:8px}
+  .box{border:1px solid #8A8A8A;border-radius:6px;padding:5px 9px;min-height:46px}
+  thead{display:table-header-group}tr{page-break-inside:avoid}
+  @media print{body{background:#fff}.pg{margin:0;box-shadow:none}.noprint{display:none}}
+  .noprint{position:fixed;top:10px;right:10px}.noprint button{font:inherit;padding:8px 18px;border-radius:8px;border:0;background:#12245A;color:#fff;cursor:pointer}</style></head>
+  <body><div class="noprint"><button onclick="print()">🖨 พิมพ์</button></div>${pages.join('')}<script>document.fonts&&document.fonts.ready.then(()=>setTimeout(()=>print(),300))<\/script></body></html>`);
+  w.document.close();
+}
+function gHd(title, sub, right){ const logo=new URL('../assets/kjst-logo.png', location.href).href; return `<div class="hd"><img src="${logo}" alt=""><div class="t"><h1>${title}</h1><div>${sub}</div></div><div class="r">${right||''}</div></div>`; }
+const gSign = (name, pos) => `<div>ลงชื่อ ............................................<div>( ${esc(name||'............................................')} )</div><div>${esc(pos)}</div></div>`;
+const gFt = (pub) => `<div class="ft"><span>พิมพ์จากระบบ KJST Shield เมื่อ ${thDate(iso())} · ผลการเรียนจาก KJST e-Score${pub?' (เผยแพร่ '+thDate(pub)+')':''}</span><span>ข้อมูลส่วนบุคคล ใช้เพื่อการดูแลช่วยเหลือนักเรียนเท่านั้น</span></div>`;
+const SCHOOL_TH = () => (S.init&&S.init.school)||'โรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี';
+
+/** รายงานผลการเรียนรายห้อง (A4 แนวนอน · หลายหน้า หัวตารางซ้ำ) */
+function printGradeRoom(w, d){
+  const gs=groupsUsed(d.students, d.groups), per=24, k=d.kpi, pages=[];
+  const adv=(d.advisors||[]), heads=(d.heads||[]);
+  const thead = `<thead><tr><th style="width:30px">ที่</th><th>ชื่อ – นามสกุล</th>${gs.map(g=>`<th class="nw">${esc(g)}</th>`).join('')}<th style="width:62px">หน่วยกิต<br>ได้/ลง</th><th style="width:44px">GPA</th><th style="width:48px">อันดับ</th><th style="width:56px">คะแนน<br>พฤติกรรม</th><th style="width:50px">มาเรียน<br>(%)</th></tr></thead>`;
+  const n=Math.max(1, Math.ceil(d.students.length/per));
+  for(let p=0;p<n;p++){
+    const part=d.students.slice(p*per,(p+1)*per), last=p===n-1;
+    pages.push(`<div class="pg">${gHd(`รายงานผลการเรียนรายห้อง ภาคเรียนที่ ${esc(d.term)}`, `ชั้น ${esc(d.key)} · ครูที่ปรึกษา ${esc(adv.join(', ')||'-')} · ${esc(SCHOOL_TH())}`, `หน้า ${p+1}/${n}`)}
+      ${p===0?`<div class="kp"><div>นักเรียน<b>${k.n} คน</b></div><div>GPA เฉลี่ย<b>${g2(k.avg)}</b><span class="sm">ระดับชั้น ${g2(d.gradeAvg)}</span></div><div>ติด 0/ร/มส<b>${k.bad} คน</b><span class="sm">0 = ${k.n0} · ร = ${k.nr} · มส = ${k.nms}</span></div><div>GPA &lt; 2.00<b>${k.lt2} คน</b></div><div>กิจกรรม มผ<b>${k.actFail} คน</b></div></div>`:'<div style="height:8px"></div>'}
+      <table style="font-size:12.5px">${thead}<tbody>${part.map(s=>`<tr><td class="c">${s.no<999?s.no:''}</td><td class="nw">${esc(s.name)}</td>${gs.map(g=>`<td class="c nw">${gcell(s.groups[g])}</td>`).join('')}
+        <td class="c">${s.crGet}/${s.crReg}</td><td class="c" style="font-weight:700${s.gpa!=null&&s.gpa<2?';color:#B00000':''}">${g2(s.gpa)}</td><td class="c">${s.rk==null?'–':s.rk}</td><td class="c">${s.score}</td><td class="c">${s.rate==null?'–':s.rate}</td></tr>`).join('')}</tbody></table>
+      ${last?`<div class="sm" style="margin-top:5px">ค่าในแต่ละกลุ่มสาระ = ค่าเฉลี่ยถ่วงน้ำหนักหน่วยกิตของทุกรายวิชาในกลุ่ม (พื้นฐานและเพิ่มเติม) ที่ตัดสินผลแล้ว จัดกลุ่มตามรหัสวิชา · <span class="gf">(0)</span> มีวิชาได้ 0 (นำมาคิด) · <span class="gf">(ร)/(มส)</span> มีวิชายังไม่ตัดสินผล (ไม่นำมาคิด) · GPA และอันดับจาก KJST e-Score</div>
+        <div class="grow"></div><div class="sgns">${(adv.length?adv:['']).map(a=>gSign(a,'ครูที่ปรึกษา')).join('')}${gSign(heads[0],'หัวหน้าระดับชั้น '+d.key.split('/')[0])}</div>`:'<div class="grow"></div>'}
+      ${gFt(d.pub)}</div>`);
+  }
+  gPrintWin(w, 'ผลการเรียน '+d.key+' ภาค '+d.term, pages, true);
+}
+
+/** รายงานรายบุคคล (A4 แนวตั้ง 1 คน/หน้า) — items: [{st:{...ข้อมูลนักเรียน+Shield}, t:{...ผลภาคเรียน}}] */
+function printGradeStudents(w, items, groups){
+  const pages = items.map(({st, t})=>{
+    const gs=groupsUsed([t], groups), todo=[];
+    t.subs.filter(isBadSub).forEach(s=>todo.push(`แก้ผลการเรียน <b class="bad">${esc(gradeTxt(s))}</b> รายวิชา ${esc(s.c)} ${esc(s.n||'')}${s.tc?' · ครูผู้สอน '+esc(s.tc):''}`));
+    t.subs.filter(s=>!s.st && s.tm!=='' && s.tm<80).forEach(s=>todo.push(`เวลาเรียนรายวิชา ${esc(s.c)} ${esc(s.n||'')} ${esc(s.tm)}% ต่ำกว่าเกณฑ์ 80%`));
+    (t.act||[]).filter(a=>a.r==='มผ').forEach(a=>todo.push(`${esc(a.n)} ไม่ผ่าน (มผ) ติดต่อครูผู้รับผิดชอบกิจกรรม`));
+    const att = st.days ? `${st.rate==null?'-':st.rate+'%'} · มา ${st.P} · ลา ${st.LV} · สาย ${st.L} · ขาด ${st.A} วัน` : 'ยังไม่มีข้อมูลเช็กชื่อ';
+    const meas = [].concat((st.mNow||[]).map(m=>esc(m.name)+' (ถึง '+thDate(m.end)+')'), st.mProb?['ทำทัณฑ์บน '+st.mProb+' ครั้ง']:[], st.mContract?['ทำบันทึกสัญญาพฤติกรรม '+st.mContract+' ครั้ง']:[]);
+    return `<div class="pg">${gHd('รายงานผลการเรียนและการดูแลนักเรียนรายบุคคล', `ภาคเรียนที่ ${esc(t.term)} · ${esc(SCHOOL_TH())}`, '')}
+      <p style="margin:8px 0 0;font-size:15px">ชื่อ – นามสกุล <b>${esc(st.name)}</b> &nbsp; เลขประจำตัว ${esc(st.id)} &nbsp; ชั้น ${esc(st.cls)}${st.no&&st.no<999?' เลขที่ '+st.no:''}<br>ครูที่ปรึกษา ${esc((st.advisors||[]).join(', ')||'-')}</p>
+      <div class="kp"><div>GPA<b class="${t.gpa!=null&&t.gpa<2?'bad':''}">${g2(t.gpa)}</b></div>${st.gpax!=null?`<div>GPAX<b>${g2(st.gpax)}</b></div>`:''}<div>อันดับในห้อง<b>${t.rk==null?'–':t.rk+' / '+t.rkN}</b></div><div>หน่วยกิต ได้/ลง<b>${t.crGet} / ${t.crReg}</b></div><div>ติด 0/ร/มส<b class="${t.n0+t.nr+t.nms?'bad':''}">${t.n0+t.nr+t.nms} วิชา</b></div></div>
+      <table style="font-size:13px"><thead><tr><th style="width:62px">รหัส</th><th>รายวิชา</th><th style="width:58px">ประเภท</th><th style="width:50px">หน่วยกิต</th><th style="width:46px">คะแนน</th><th style="width:56px">ผลการเรียน</th><th style="width:56px">เวลาเรียน</th></tr></thead>
+      <tbody>${t.subs.map(s=>`<tr><td>${esc(s.c)}</td><td>${esc(s.n||s.c)}</td><td class="c">${esc(s.ty)}</td><td class="c">${s.cr}</td><td class="c">${s.t===''?'–':esc(s.t)}</td><td class="c ${isBadSub(s)?'bad':''}" style="font-weight:700">${esc(gradeTxt(s))}</td><td class="c ${s.tm!==''&&s.tm<80?'bad':''}">${s.tm===''?'–':esc(s.tm)+'%'}</td></tr>`).join('')}</tbody></table>
+      <table style="font-size:12.5px;margin-top:6px"><tr>${gs.map(g=>`<th class="nw">${esc(g)}</th>`).join('')}</tr><tr>${gs.map(g=>`<td class="c nw">${gcell(t.groups[g])}</td>`).join('')}</tr></table>
+      ${t.act&&t.act.length?`<div class="sm" style="margin-top:4px">กิจกรรมพัฒนาผู้เรียน: ${t.act.map(a=>`${esc(a.n)} <b class="${a.r==='มผ'?'bad':''}">${esc(a.r)}</b>`).join(' · ')}</div>`:''}
+      <h2>ข้อมูลการดูแลช่วยเหลือ (KJST Shield)</h2>
+      <table style="font-size:13px"><tr><td style="width:26%;background:#F7F7F7">คะแนนความประพฤติ</td><td>${st.score==null?'-':st.score+' คะแนน'}${st.cert?' ('+esc(st.cert)+')':''}</td></tr>
+        <tr><td style="background:#F7F7F7">การมาเรียน (ปีการศึกษานี้)</td><td>${att}</td></tr>
+        <tr><td style="background:#F7F7F7">มาตรการที่ได้รับ</td><td>${meas.length?meas.join(' · '):'-'}</td></tr></table>
+      <h2>สิ่งที่ต้องดำเนินการ</h2><div style="font-size:13.5px">${todo.length?todo.map((x,i)=>`${i+1}. ${x}`).join('<br>'):'ไม่มีรายการที่ต้องแก้ไข'}</div>
+      <div class="box" style="margin-top:8px;font-size:13.5px">ความเห็นครูที่ปรึกษา</div>
+      <div class="grow"></div><div class="sgns">${gSign((st.advisors||[])[0],'ครูที่ปรึกษา')}${gSign('','ผู้ปกครอง')}</div>${gFt(t.pub)}</div>`;
+  });
+  gPrintWin(w, items.length===1?'ผลการเรียน '+items[0].st.name:'ผลการเรียนรายบุคคล', pages, false);
+}
+
+/** รายชื่อนักเรียนที่มีผล 0 / ร / มส (A4 แนวตั้ง · หัวตารางซ้ำ) */
+function printGradeFollow(w, d){
+  const list=d.bad||[], multi=d.view!=='room', per=30, pages=[];
+  const cnt={'0':0,'ร':0,'มส':0}; list.forEach(x=>cnt[x.flag]=(cnt[x.flag]||0)+1);
+  const nStu=new Set(list.map(x=>x.id)).size, scopeTxt=d.view==='school'?'ทั้งโรงเรียน':(d.view==='grade'?'ระดับชั้น '+d.key:'ชั้น '+d.key);
+  let idx=0, prev='';
+  const rows=list.map(x=>{ const first=x.id!==prev; if(first){ idx++; prev=x.id; } return {x, first, idx}; });
+  const n=Math.max(1, Math.ceil(rows.length/per));
+  const signs = d.view==='room' ? (d.advisors||['']).map(a=>gSign(a,'ครูที่ปรึกษา')).join('')+gSign((d.heads||[])[0],'หัวหน้าระดับชั้น '+d.key.split('/')[0])
+    : d.view==='grade' ? gSign((d.heads||[])[0],'หัวหน้าระดับชั้น '+d.key)+gSign('','หัวหน้ากลุ่มบริหารงานวิชาการ') : gSign('','หัวหน้ากลุ่มบริหารงานวิชาการ')+gSign('','รองผู้อำนวยการกลุ่มบริหารงานวิชาการ');
+  for(let p=0;p<n;p++){
+    const part=rows.slice(p*per,(p+1)*per), last=p===n-1;
+    pages.push(`<div class="pg">${gHd('รายชื่อนักเรียนที่มีผลการเรียน 0 / ร / มส', `ภาคเรียนที่ ${esc(d.term)} · ${esc(scopeTxt)} · ${esc(SCHOOL_TH())}`, `หน้า ${p+1}/${n}<br>สำหรับติดตามการแก้ผลการเรียน`)}
+      ${p===0?`<p style="margin:8px 0">สรุป: นักเรียน <b>${nStu}</b> คน · <b>${list.length}</b> รายการ (0 = ${cnt['0']} · ร = ${cnt['ร']} · มส = ${cnt['มส']})</p>`:'<div style="height:8px"></div>'}
+      ${list.length?`<table style="font-size:12.5px"><thead><tr><th style="width:30px">ที่</th><th style="width:${multi?'19%':'24%'}">ชื่อ – นามสกุล</th>${multi?'<th style="width:52px">ชั้น</th>':''}<th>รายวิชา</th><th style="width:36px">ผล</th><th style="width:22%">ครูผู้สอน</th><th style="width:62px">วันที่แก้</th><th style="width:62px">ลงชื่อครู</th></tr></thead>
+      <tbody>${part.map(({x,first,idx})=>`<tr style="${first?'border-top:2px solid #555':''}"><td class="c">${first?idx:''}</td><td>${first?esc(x.name):''}</td>${multi?`<td class="c">${first?esc(x.cls):''}</td>`:''}<td>${esc(x.code)} ${esc(x.subject)}</td><td class="c bad">${esc(x.flag)}</td><td>${esc(x.teacher||'-')}</td><td></td><td></td></tr>`).join('')}</tbody></table>`:'<p>ไม่มีนักเรียนที่มีผล 0 / ร / มส</p>'}
+      ${last?`<div class="sm" style="margin-top:5px">0 = ไม่ผ่านเกณฑ์ · ร = รอการตัดสิน · มส = ไม่มีสิทธิ์สอบ (เวลาเรียนไม่ถึง 80%) · ครูผู้สอนจาก KJST e-Score</div><div class="grow"></div><div class="sgns">${signs}</div>`:'<div class="grow"></div>'}
+      ${gFt(d.pub)}</div>`);
+  }
+  gPrintWin(w, 'รายชื่อ 0 ร มส '+scopeTxt, pages, false);
+}
+
+/** สรุปผลการเรียนรายระดับ/ทั้งโรงเรียน (A4 แนวตั้ง) */
+function printGradeSummary(w, d){
+  const k=d.kpi, scopeTxt=d.view==='school'?'ทั้งโรงเรียน':'ระดับชั้น '+d.key;
+  const gs=d.groupAvg?d.groups.filter(g=>d.groupAvg.some(r=>r[g]!=null)):[];
+  const page = `<div class="pg">${gHd('สรุปผลการเรียน '+esc(scopeTxt), `ภาคเรียนที่ ${esc(d.term)} · ${esc(SCHOOL_TH())}`, '')}
+    <div class="kp"><div>นักเรียน<b>${fmt(k.n)}</b></div><div>GPA เฉลี่ย<b>${g2(k.avg)}</b></div><div>ติด 0/ร/มส<b>${k.bad} คน</b><span class="sm">0 = ${k.n0} · ร = ${k.nr} · มส = ${k.nms}</span></div><div>GPA &lt; 2.00<b>${k.lt2} คน</b></div><div>กิจกรรม มผ<b>${k.actFail} คน</b></div></div>
+    <h2>${d.view==='school'?'แยกตามระดับชั้น':'แยกตามห้องเรียน'}</h2>
+    <table style="font-size:13px"><thead><tr><th>${d.view==='school'?'ระดับชั้น':'ห้อง'}</th><th>นักเรียน</th><th>GPA เฉลี่ย</th>${BANDS.map(b=>`<th class="nw" style="font-size:11.5px">${b}</th>`).join('')}<th>ติด 0/ร/มส<br>(คน)</th><th>0</th><th>ร</th><th>มส</th></tr></thead>
+    <tbody>${d.parts.map(p=>`<tr><td class="c"><b>${esc(p.key)}</b></td><td class="c">${p.n}</td><td class="c"><b>${g2(p.avg)}</b></td>${p.bands.map(v=>`<td class="c">${v}</td>`).join('')}<td class="c ${p.bad?'bad':''}">${p.bad}</td><td class="c">${p.n0}</td><td class="c">${p.nr}</td><td class="c">${p.nms}</td></tr>`).join('')}
+      <tr style="background:#F7F7F7"><td class="c"><b>รวม</b></td><td class="c"><b>${k.n}</b></td><td class="c"><b>${g2(k.avg)}</b></td>${k.bands.map(v=>`<td class="c"><b>${v}</b></td>`).join('')}<td class="c"><b>${k.bad}</b></td><td class="c">${k.n0}</td><td class="c">${k.nr}</td><td class="c">${k.nms}</td></tr></tbody></table>
+    ${gs.length?`<h2>ค่าเฉลี่ยรายกลุ่มสาระ แยกตามห้อง</h2><table style="font-size:12.5px"><thead><tr><th>ห้อง</th>${gs.map(g=>`<th class="nw">${esc(g)}</th>`).join('')}</tr></thead><tbody>${d.groupAvg.map(r=>`<tr><td class="c"><b>${esc(r.key)}</b></td>${gs.map(g=>`<td class="c ${r[g]!=null&&r[g]<2?'bad':''}">${g2(r[g])}</td>`).join('')}</tr>`).join('')}</tbody></table>`:''}
+    ${d.subjects&&d.subjects.length?`<h2>รายวิชาที่มีผล 0 / ร / มส มากที่สุด</h2><table style="font-size:12.5px"><thead><tr><th>รหัส</th><th>รายวิชา</th><th>ครูผู้สอน</th><th>นักเรียน</th><th>0</th><th>ร</th><th>มส</th></tr></thead><tbody>${d.subjects.slice(0,15).map(x=>`<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td class="sm">${esc(x.teachers||'-')}</td><td class="c">${x.n}</td><td class="c">${x.n0}</td><td class="c">${x.nr}</td><td class="c">${x.nms}</td></tr>`).join('')}</tbody></table>`:''}
+    <div class="grow"></div><div class="sgns">${d.view==='grade'?gSign((d.heads||[])[0],'หัวหน้าระดับชั้น '+d.key):''}${gSign('','หัวหน้ากลุ่มบริหารงานวิชาการ')}</div>${gFt(d.pub)}</div>`;
+  gPrintWin(w, 'สรุปผลการเรียน '+scopeTxt, [page], false);
+}
+
+function gStuItem(st, t, gpax){ return { st:Object.assign({}, st, { cls:st.cls||(st.g?st.g+'/'+st.r:t.grade+'/'+t.room), gpax }), t }; }
+function gPrint(kind){
+  const w=window.open('','_blank'), d=GR.d;
+  if(kind==='room') return printGradeRoom(w, d);
+  if(kind==='follow') return printGradeFollow(w, d);
+  if(kind==='summary') return printGradeSummary(w, d);
+  if(kind==='roomind') return printGradeStudents(w, d.students.map(s=>gStuItem(Object.assign({}, s, { cls:d.key, advisors:d.advisors }), Object.assign({ term:d.term, pub:d.pub, grade:'', room:'' }, s), null)), d.groups);
+  const r = kind==='self' ? S.myGrades : (kind==='modal' ? S.stuGrades : GR.stu);
+  if(!r || !r.terms.length){ if(w) w.close(); return toast('ยังไม่มีผลการเรียน', true); }
+  const t = (kind==='stu' && r.terms.find(x=>x.term===GR.term)) || r.terms[0];
+  printGradeStudents(w, [gStuItem(r.student, t, r.gpax)], r.groups);
 }
 
 /* ----- scores ----- */
@@ -1235,7 +1519,13 @@ document.addEventListener('click', e=>{
   const md=t.closest('[data-mcdate]'); if(md){ e.preventDefault(); return pMyClass(S.mcCls, md.dataset.mcdate); }
   const mcc=t.closest('[data-mccls]'); if(mcc) return pMyClass(mcc.dataset.mccls, S.mcDate);
   const gt=t.closest('[data-goto]'); if(gt){ e.preventDefault(); return go(gt.dataset.goto); }
-  const sr=t.closest('[data-sid]'); if(sr && !t.closest('button')) return openStudent(sr.dataset.sid);
+  const gv=t.closest('[data-gview]'); if(gv){ let v=gv.dataset.gview, k=gv.dataset.gkey; const o=GR.d&&GR.d.options;
+    if(k===undefined && o){ const g=(GR.key||'').split('/')[0]; if(v==='grade') k=o.grades.indexOf(g)>=0?g:''; else if(v==='room'){ const r=o.rooms.find(x=>x.v===GR.key)||o.rooms.find(x=>x.v.indexOf(g+'/')===0&&g); k=r?r.v:''; } else k=''; }
+    if(v==='student' && GR.view==='room') GR.sroom=GR.key;
+    return pGrades(v, k); }
+  const gsr=t.closest('[data-gsid]'); if(gsr){ GR.sid=gsr.dataset.gsid; GR.sroom=GR.key; return pGrades('student'); }
+  const gp=t.closest('[data-gprint]'); if(gp) return gPrint(gp.dataset.gprint);
+  const sr=t.closest('[data-sid]'); if(sr && (!t.closest('button') || t.closest('button')===sr)) return openStudent(sr.dataset.sid);
   const v=t.closest('[data-void]'); if(v) return voidScore(v.dataset.void);
   const c=t.closest('[data-care]'); if(c) return careUpdate(c.dataset.care);
   const ei=t.closest('[data-edititem]'); if(ei) return editItem(ei.dataset.edititem);

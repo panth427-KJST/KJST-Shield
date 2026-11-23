@@ -24,6 +24,7 @@ function buildSummary_() {
             attMin: num_(C.ATT_MIN, 80), attNear: num_(C.ATT_NEAR, 85), minDays: num_(C.MIN_DAYS, 5),
             absent: num_(C.ABSENT_WATCH, 3), late: num_(C.LATE_WATCH, 5), dress: num_(C.DRESS_WATCH, 3) };
   var certs = certRules_(), studs = activeStudents_(), st = {}, MS = measuresByStudent_(year, today_());
+  var GR = {}; if (bool_(C.GRADE_FLAG)) { try { GR = latestGrades_(); } catch (e) { GR = {}; } }
   studs.forEach(function (s) { st[s.student_id] = { stage: stage_(s.grade), plus: 0, minus: 0, sev: {}, P: 0, O: 0, LV: 0, L: 0, A: 0, D: 0, dress: 0 }; });
 
   rows_('BehaviorLog').forEach(function (b) {
@@ -57,13 +58,21 @@ function buildSummary_() {
     if (x.dress >= T.dress) flag(1, 'ผิดระเบียบการแต่งกาย ' + x.dress + ' ครั้ง', 'ตักเตือน ชี้แจงผู้ปกครอง ประสานกองทุนชุดนักเรียนหากขาดแคลน');
     var mx = MS[s.student_id] || { list: [], current: [], probation: 0, contract: 0 };
     if (mx.probation) flag(2, 'ทำทัณฑ์บนแล้ว ' + mx.probation + ' ครั้ง (ปีการศึกษานี้)', 'ครูที่ปรึกษาติดตามใกล้ชิด ประสานผู้ปกครองทุกสัปดาห์ ส่งต่อครูแนะแนว/ฝ่ายปกครอง');
+    var gr = GR[s.student_id];
+    if (gr) {
+      var nb = gr.n0 + gr.nr + gr.nms, ac = [];
+      if (gr.gpa !== null && gr.gpa < 2) ac.push('GPA ' + gr.gpa.toFixed(2));
+      if (nb) ac.push('ติด 0/ร/มส ' + nb + ' วิชา');
+      if (ac.length) flag(1, 'ผลการเรียนภาค ' + gr.term + ': ' + ac.join(' · '), 'ครูที่ปรึกษาประสานครูประจำวิชาเพื่อแก้ผลการเรียน แจ้งผู้ปกครอง และติดตามจนแก้ครบ');
+    }
     Object.keys(x.sev).forEach(function (k) { flag(2, 'พฤติกรรมเสี่ยง: ' + k + ' (' + x.sev[k] + ' ครั้ง)', 'ส่งต่อครูแนะแนว/ฝ่ายปกครอง และหน่วยงานภายนอกตามความเหมาะสม'); });
     var cert = certOf_(score, certs);
     return {
       id: s.student_id, no: num_(s.number, 999), name: fullName_(s), g: s.grade, r: s.room, sex: s.gender, stage: x.stage, type: s.student_type || STUDENT_TYPES[0],
       score: score, plus: x.plus, minus: x.minus, P: x.P, O: x.O, LV: x.LV, L: x.L, A: x.A, days: x.D, rate: rate, dress: x.dress,
       lv: lv, reasons: reasons, advice: advice, cert: cert.label, certOk: cert.issue,
-      mNow: mx.current.map(function (m) { return { name: m.name, start: m.start, end: m.end }; }), mProb: mx.probation, mContract: mx.contract
+      mNow: mx.current.map(function (m) { return { name: m.name, start: m.start, end: m.end }; }), mProb: mx.probation, mContract: mx.contract,
+      gpa: gr ? gr.gpa : null, gBad: gr ? gr.n0 + gr.nr + gr.nms : 0, gTerm: gr ? gr.term : ''
     };
   });
 }

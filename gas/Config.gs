@@ -13,7 +13,8 @@ var IDS = {
   SYSTEM: '1CyT1E5gRTXJdQj0TPpBnoESuea74cQQmuULRNtK2uzE',   // KJST Shield System file
   DATA:   '1Hlx2Y0oeq4bQdvtICcNpJfJWJewzjfVdXT9yG0oOCss',   // KJST Shield database
   MASTER: '1dfdj6Mnd_Z7QA6Cf7gS1uK5rBSFO__MWMX4ikwjDhXU',   // Users กลาง (Staff_Master)
-  STUDENTS: '18i5uknX6Ss1PLi5JqMRwdooi9Tewi9EbFJaHlMTEv3g'  // ฐานข้อมูลนักเรียนกลาง (ทะเบียนนักเรียน, ครูที่ปรึกษา)
+  STUDENTS: '18i5uknX6Ss1PLi5JqMRwdooi9Tewi9EbFJaHlMTEv3g', // ฐานข้อมูลนักเรียนกลาง (ทะเบียนนักเรียน, ครูที่ปรึกษา)
+  ESCORE: '1pS2DDkSvYiWBhFaWewTcGkcnjCPVpiRRe6LFmWvGgfI'    // KJST e-Score (อ่านอย่างเดียว: ReportMeta, ReportSnap, SgsSnap_M1..6)
 };
 
 var TZ = 'Asia/Bangkok';
@@ -38,7 +39,10 @@ var CONFIG_DEFAULTS = [
   ['SESSION_HOURS', '6', 'อายุ session (ชั่วโมง สูงสุด 6)'],
   ['DRESS_LADDER_NAME', 'เครื่องแต่งกายหรือทรงผม', 'ข้อความในชื่อรายการหักคะแนนแบบขั้นบันได (ครั้งที่ 3/4/5) ที่ใช้กับคำขอจากผลตรวจแต่งกาย/ทรงผม'],
   ['ATT_WEB_URL', 'https://panth427-kjst.github.io/KJST-Attendance/', 'ลิงก์หน้าเว็บ KJST e-Attendance (ปุ่มบันทึกการมาเรียน/ตรวจระเบียบ ในหน้าชั้นเรียนของฉัน)'],
-  ['YEARS', '2567,2568,2569', 'ปีการศึกษาที่แสดงในข้อมูลย้อนหลัง']
+  ['YEARS', '2567,2568,2569', 'ปีการศึกษาที่แสดงในข้อมูลย้อนหลัง'],
+  ['GRADE_GROUPS', 'ท:ภาษาไทย, ค:คณิต, ส:สังคมฯ, ว:วิทย์ฯ, พ:สุขศึกษาฯ, ศ:ศิลปะ, ง:การงานฯ, อ:ต่างประเทศ, จ:ต่างประเทศ, ญ:ต่างประเทศ, ฝ:ต่างประเทศ, ข:ต่างประเทศ, I:IS',
+   'จัดกลุ่มสาระจากอักษรนำหน้ารหัสวิชา (อักษร:ชื่อกลุ่ม) ลำดับตามที่เขียน · ใช้ในรายงานผลการเรียน'],
+  ['GRADE_FLAG', 'TRUE', 'แสดงธงเฝ้าระวังด้านการเรียน (GPA < 2.00 หรือมี 0/ร/มส) ในสรุปนักเรียน จากผลภาคเรียนล่าสุด']
 ];
 
 /**
@@ -90,6 +94,9 @@ var SCHEMA = {
   AttendanceRoomDaily: { file: 'DATA', cols: ['year', 'term', 'date', 'grade', 'room', 'total', 'present', 'official', 'leave', 'late', 'absent', 'blank'] },
   DressChecks: { file: 'DATA', cols: ['year', 'term', 'date', 'student_id', 'grade', 'room', 'items', 'note', 'recorded_by'] },
   CareLogs: { file: 'DATA', cols: ['care_id', 'date', 'student_id', 'grade', 'room', 'kind', 'detail', 'referred_to', 'status', 'recorded_by', 'recorded_at', 'updated_by', 'updated_at'] },
+  // ผลการเรียนจาก KJST e-Score (ซิงก์หลังประกาศผล) groups/subjects เป็น JSON
+  GradeTerm: { file: 'DATA', cols: ['term', 'grade', 'student_id', 'room', 'no', 'name', 'gpa', 'gp_sum', 'cr_sum', 'cr_reg', 'cr_get', 'n_0', 'n_r', 'n_ms',
+                                    'rank_room', 'rank_room_n', 'rank_grade', 'rank_grade_n', 'act', 'act_fail', 'min_time', 'groups', 'subjects', 'published_at', 'synced_at'] },
   StudentHistory: { file: 'DATA', cols: ['year', 'student_id', 'name', 'grade', 'room', 'status'] }
 };
 
@@ -115,7 +122,9 @@ var PERMISSIONS_SEED = [
   ['shield.edit',     'บันทึกผลตัวชี้วัด KJST SHIELD',                 0, 0, 0, 0, 1],
   ['student.edit',    'แก้ไขข้อมูลผู้ปกครองและประเภทนักเรียน',          0, 0, 0, 1, 1],
   ['score.propose',   'เสนอตัดคะแนน (รอแอดมินอนุมัติ)',                0, 1, 1, 0, 0],
-  ['records.edit',    'แก้ไขข้อมูลการมาเรียน/แต่งกาย/ทรงผมย้อนหลัง',     0, 0, 0, 1, 1]
+  ['records.edit',    'แก้ไขข้อมูลการมาเรียน/แต่งกาย/ทรงผมย้อนหลัง',     0, 0, 0, 1, 1],
+  ['grades.view',     'ดูผลการเรียน (KJST e-Score) ตามขอบเขต',           1, 1, 1, 1, 1],
+  ['grades.sync',     'ซิงก์ผลการเรียนจาก KJST e-Score',                0, 0, 0, 1, 1]
 ];
 
 /** รายการคะแนนตั้งต้น: id, type, category, name, points, guidance, severe */

@@ -52,7 +52,8 @@ var PUBLIC_ACTIONS = {
 
 var STUDENT_ACTIONS = {
   init: function (u) { return { user: publicUser_(u), school: cfg_('SCHOOL_NAME'), year: year_(), term: term_(), version: VERSION }; },
-  myReport: function (u) { return studentDetail_(u.id, { staff: false, contact: false, care: false }); }
+  myReport: function (u) { return studentDetail_(u.id, { staff: false, contact: false, care: false }); },
+  myGrades: function (u) { return gradeStudentSelf_(u); }
 };
 
 var ACTIONS = {
@@ -83,6 +84,9 @@ var ACTIONS = {
   recHairGet:   { perm: 'records.edit', fn: function (u, p) { return recHairGet_(p); } },
   recHairSave:  { perm: 'records.edit', fn: function (u, p) { return recHairSave_(u, p); } },
   recLog:       { perm: 'records.edit', fn: function (u, p) { return recLog_(p); } },
+  grades:       { perm: 'grades.view', fn: function (u, p) { return gradesView_(u, p); } },
+  gradeStudent: { perm: 'grades.view', fn: function (u, p) { return gradeStudentStaff_(u, p); } },
+  gradesSync:   { perm: 'grades.sync', fn: function (u, p) { return lock_(function () { return gradesSync_(by_(u), { term: p.term || '', grades: p.grades || [] }); }); } },
   history:      { perm: 'dashboard.view', fn: function () { return history_(); } },
   students:     { perm: 'student.view', fn: function (u) { return studentsList_(u); } },
   student:      { perm: 'student.view', fn: function (u, p) {
