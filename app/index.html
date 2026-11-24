@@ -769,6 +769,7 @@ const g2 = v => v==null||v==='' ? '–' : Number(v).toFixed(2);
 const gflags = f => (f||[]).map(x=>` <span class="gf">(${esc(x)})</span>`).join('');
 const gcell = x => x ? g2(x.avg)+gflags(x.f) : '';
 const gradeTxt = s => s.st ? s.st : (s.g===''||s.g==null ? '–' : String(s.g));
+const fxTxt = s => s.fx ? ` <span style="font-size:.78em;font-weight:400;color:#555">(${esc(s.fx)})</span>` : '';
 const isBadSub = s => !!s.st || s.g===0;
 const badTxt = r => (r.n0+r.nr+r.nms) ? [r.n0?'0 = '+r.n0:'', r.nr?'ร = '+r.nr:'', r.nms?'มส = '+r.nms:''].filter(Boolean).join(' · ') : '';
 function groupsUsed(list, order){ const u={}; list.forEach(x=>Object.keys(x.groups||{}).forEach(k=>u[k]=1)); return order.filter(k=>u[k]).concat(Object.keys(u).filter(k=>order.indexOf(k)<0)); }
@@ -900,7 +901,7 @@ function gradeStudentHtml(r, focusTerm){
       <div class="gchips">${gs.map(g=>`<div><span>${esc(g)}</span><b>${gcell(t.groups[g])}</b></div>`).join('')}</div>
       <div class="tw"><table><tr><th>รหัส</th><th>รายวิชา</th><th>ประเภท</th><th class="n">หน่วยกิต</th><th class="n">คะแนน</th><th class="n">ผลการเรียน</th><th class="n">เวลาเรียน</th><th>ครูผู้สอน</th></tr>
       ${t.subs.map(s=>`<tr><td>${esc(s.c)}</td><td>${esc(s.n||s.c)}</td><td class="small">${esc(s.ty)}</td><td class="n">${s.cr}</td><td class="n">${s.t===''?'–':esc(s.t)}</td>
-        <td class="n"><b style="${isBadSub(s)?'color:#B00000':''}">${esc(gradeTxt(s))}</b></td><td class="n" style="${s.tm!==''&&s.tm<80?'color:#B00000;font-weight:600':''}">${s.tm===''?'–':esc(s.tm)+'%'}</td><td class="small">${esc(s.tc||'-')}</td></tr>`).join('')}</table></div>
+        <td class="n" style="white-space:nowrap"><b style="${isBadSub(s)?'color:#B00000':''}">${esc(gradeTxt(s))}</b>${fxTxt(s)}</td><td class="n" style="${s.tm!==''&&s.tm<80?'color:#B00000;font-weight:600':''}">${s.tm===''?'–':esc(s.tm)+'%'}</td><td class="small">${esc(s.tc||'-')}</td></tr>`).join('')}</table></div>
       ${t.act&&t.act.length?`<p class="small" style="margin:8px 0 0">กิจกรรมพัฒนาผู้เรียน: ${t.act.map(a=>`${esc(a.n)} <b style="${a.r==='มผ'?'color:#B00000':''}">${esc(a.r)}</b>`).join(' · ')}</p>`:''}</details>`;
   });
   return h;
@@ -983,8 +984,8 @@ function printGradeStudents(w, items, groups){
     return `<div class="pg">${gHd('รายงานผลการเรียนและการดูแลนักเรียนรายบุคคล', `ภาคเรียนที่ ${esc(t.term)} · ${esc(SCHOOL_TH())}`, '')}
       <p style="margin:8px 0 0;font-size:15px">ชื่อ – นามสกุล <b>${esc(st.name)}</b> &nbsp; เลขประจำตัว ${esc(st.id)} &nbsp; ชั้น ${esc(st.cls)}${st.no&&st.no<999?' เลขที่ '+st.no:''}<br>ครูที่ปรึกษา ${esc((st.advisors||[]).join(', ')||'-')}</p>
       <div class="kp"><div>GPA<b class="${t.gpa!=null&&t.gpa<2?'bad':''}">${g2(t.gpa)}</b></div>${st.gpax!=null?`<div>GPAX<b>${g2(st.gpax)}</b></div>`:''}<div>อันดับในห้อง<b>${t.rk==null?'–':t.rk+' / '+t.rkN}</b></div><div>หน่วยกิต ได้/ลง<b>${t.crGet} / ${t.crReg}</b></div><div>ติด 0/ร/มส<b class="${t.n0+t.nr+t.nms?'bad':''}">${t.n0+t.nr+t.nms} วิชา</b></div></div>
-      <table style="font-size:13px"><thead><tr><th style="width:62px">รหัส</th><th>รายวิชา</th><th style="width:58px">ประเภท</th><th style="width:50px">หน่วยกิต</th><th style="width:46px">คะแนน</th><th style="width:56px">ผลการเรียน</th><th style="width:56px">เวลาเรียน</th></tr></thead>
-      <tbody>${t.subs.map(s=>`<tr><td>${esc(s.c)}</td><td>${esc(s.n||s.c)}</td><td class="c">${esc(s.ty)}</td><td class="c">${s.cr}</td><td class="c">${s.t===''?'–':esc(s.t)}</td><td class="c ${isBadSub(s)?'bad':''}" style="font-weight:700">${esc(gradeTxt(s))}</td><td class="c ${s.tm!==''&&s.tm<80?'bad':''}">${s.tm===''?'–':esc(s.tm)+'%'}</td></tr>`).join('')}</tbody></table>
+      <table style="font-size:13px"><thead><tr><th style="width:62px">รหัส</th><th>รายวิชา</th><th style="width:58px">ประเภท</th><th style="width:50px">หน่วยกิต</th><th style="width:46px">คะแนน</th><th style="width:66px">ผลการเรียน</th><th style="width:56px">เวลาเรียน</th></tr></thead>
+      <tbody>${t.subs.map(s=>`<tr><td>${esc(s.c)}</td><td>${esc(s.n||s.c)}</td><td class="c">${esc(s.ty)}</td><td class="c">${s.cr}</td><td class="c">${s.t===''?'–':esc(s.t)}</td><td class="c nw ${isBadSub(s)?'bad':''}" style="font-weight:700">${esc(gradeTxt(s))}${fxTxt(s)}</td><td class="c ${s.tm!==''&&s.tm<80?'bad':''}">${s.tm===''?'–':esc(s.tm)+'%'}</td></tr>`).join('')}</tbody></table>
       <table style="font-size:12.5px;margin-top:6px"><tr>${gs.map(g=>`<th class="nw">${esc(g)}</th>`).join('')}</tr><tr>${gs.map(g=>`<td class="c nw">${gcell(t.groups[g])}</td>`).join('')}</tr></table>
       ${t.act&&t.act.length?`<div class="sm" style="margin-top:4px">กิจกรรมพัฒนาผู้เรียน: ${t.act.map(a=>`${esc(a.n)} <b class="${a.r==='มผ'?'bad':''}">${esc(a.r)}</b>`).join(' · ')}</div>`:''}
       <h2>ข้อมูลการดูแลช่วยเหลือ (KJST Shield)</h2>

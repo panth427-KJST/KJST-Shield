@@ -5,6 +5,7 @@
  *  - จัดกลุ่มสาระด้วย "รหัสวิชา" (อักษรตัวแรก) ตาม Config GRADE_GROUPS
  *  - ค่าเฉลี่ยกลุ่ม = Σ(เกรด×หน่วยกิต)/Σหน่วยกิต ของทุกรายวิชาในกลุ่ม (พื้นฐาน+เพิ่มเติม) ที่ตัดสินผลแล้ว (0–4)
  *      เกรด 0 นำมาคิด + ธง '0' · ร/มส ไม่นำมาคิด + ธง 'ร'/'มส'
+ *      วิชาที่แก้ตัวแล้ว (st = 'แก้ 0 แล้ว'/'แก้ ร แล้ว') ใช้เกรดแก้ตัว ไม่ติดธง และเก็บหมายเหตุใน fx
  *  - ซิงก์: แอดมินกดเอง หรืออัตโนมัติเมื่อวันเผยแพร่ใน ReportMeta ใหม่กว่ารอบที่ซิงก์ไว้ (ตรวจเมื่อเปิดเมนู · แคช 30 นาที)
  ********************************************************************/
 
@@ -139,8 +140,12 @@ function gradesSync_(by, p) {
       var d; try { d = JSON.parse(String(snap[i][3])); } catch (e) { continue; }
       var id = sid_(snap[i][2]), room = normRoom_(d.r);
       var subs = (d.s || []).map(function (s) {
-        var info = j.subj[s.c] || {}, st = str_(s.st), g = st ? '' : (s.g === '' || s.g === null || s.g === undefined ? '' : Number(s.g));
-        return { c: s.c, n: str_(info.nm), sh: str_(info.sh), ty: str_(info.ty), cr: num_(info.cr), t: s.t === undefined ? '' : s.t, g: g, st: st,
+        // st จาก e-Score: 'ร' / 'มส' = ยังไม่ตัดสิน · 'แก้ 0 แล้ว' / 'แก้ ร แล้ว' = แก้ตัวแล้ว (g = เกรดแก้ตัว จากคอลัมน์ "เกรดแก้ตัว" ในไฟล์รายวิชา)
+        var info = j.subj[s.c] || {}, raw = str_(s.st), rawG = str_(s.g);
+        var st = (raw === 'ร' || raw === 'มส') ? raw : ((rawG === 'ร' || rawG === 'มส') ? rawG : '');
+        var g = st || rawG === '' || isNaN(Number(rawG)) ? '' : Number(rawG);
+        var fx = !st && /แก้/.test(raw) ? raw.replace(/\s*แล้ว\s*$/, '').trim() : '';
+        return { c: s.c, n: str_(info.nm), sh: str_(info.sh), ty: str_(info.ty), cr: num_(info.cr), t: s.t === undefined ? '' : s.t, g: g, st: st, fx: fx,
                  tm: s.tm === undefined ? '' : s.tm, grp: groupOf_(s.c), tc: tByStu[s.c + '|' + id] || tByRoom[s.c + '|' + room] || '' };
       });
       var gp = 0, cr = 0, n0 = 0, nr = 0, nms = 0, minTm = null;
