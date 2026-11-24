@@ -942,6 +942,12 @@ function gPrintWin(w, title, pages, landscape){
 }
 function gHd(title, sub, right){ const logo=new URL('../assets/kjst-logo.png', location.href).href; return `<div class="hd"><img src="${logo}" alt=""><div class="t"><h1>${title}</h1><div>${sub}</div></div><div class="r">${right||''}</div></div>`; }
 const gSign = (name, pos) => `<div>ลงชื่อ ............................................<div>( ${esc(name||'............................................')} )</div><div>${esc(pos)}</div></div>`;
+/** ครูที่ปรึกษา + หัวหน้าระดับ (ถ้าเป็นคนเดียวกัน ลงนามครั้งเดียว ตำแหน่ง "หัวหน้าระดับชั้น ม.x/ครูที่ปรึกษา") */
+function gAdvHead(advs, heads, grade){
+  const nm=x=>String(x||'').replace(/\s+/g,''), A=(advs&&advs.length)?advs:[''], H=heads||[];
+  const head=H.find(h=>A.some(a=>nm(a)&&nm(a)===nm(h)))||H[0]||'', hn=nm(head), pos='หัวหน้าระดับชั้น '+grade;
+  return A.map(a=>gSign(a, hn&&nm(a)===hn ? pos+'/ครูที่ปรึกษา' : 'ครูที่ปรึกษา')).join('') + (hn&&A.some(a=>nm(a)===hn) ? '' : gSign(head, pos));
+}
 const gFt = (pub) => `<div class="ft"><span>พิมพ์จากระบบ KJST Shield เมื่อ ${thDate(iso())} · ผลการเรียนจาก KJST e-Score${pub?' (เผยแพร่ '+thDate(pub)+')':''}</span><span>ข้อมูลส่วนบุคคล ใช้เพื่อการดูแลช่วยเหลือนักเรียนเท่านั้น</span></div>`;
 const SCHOOL_TH = () => (S.init&&S.init.school)||'โรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี';
 
@@ -959,7 +965,7 @@ function printGradeRoom(w, d){
       <table style="font-size:12.5px">${thead}<tbody>${part.map(s=>`<tr><td class="c">${s.no<999?s.no:''}</td><td class="nw">${esc(s.name)}</td>${gs.map(g=>`<td class="c nw">${gcell(s.groups[g])}</td>`).join('')}
         <td class="c">${s.crGet}/${s.crReg}</td><td class="c" style="font-weight:700${s.gpa!=null&&s.gpa<2?';color:#B00000':''}">${g2(s.gpa)}</td><td class="c">${s.rk==null?'–':s.rk}</td><td class="c">${s.score}</td><td class="c">${s.rate==null?'–':s.rate}</td></tr>`).join('')}</tbody></table>
       ${last?`<div class="sm" style="margin-top:5px">ค่าในแต่ละกลุ่มสาระ = ค่าเฉลี่ยถ่วงน้ำหนักหน่วยกิตของทุกรายวิชาในกลุ่ม (พื้นฐานและเพิ่มเติม) ที่ตัดสินผลแล้ว จัดกลุ่มตามรหัสวิชา · <span class="gf">(0)</span> มีวิชาได้ 0 (นำมาคิด) · <span class="gf">(ร)/(มส)</span> มีวิชายังไม่ตัดสินผล (ไม่นำมาคิด) · GPA และอันดับจาก KJST e-Score</div>
-        <div class="grow"></div><div class="sgns">${(adv.length?adv:['']).map(a=>gSign(a,'ครูที่ปรึกษา')).join('')}${gSign(heads[0],'หัวหน้าระดับชั้น '+d.key.split('/')[0])}</div>`:'<div class="grow"></div>'}
+        <div class="grow"></div><div class="sgns">${gAdvHead(adv, heads, d.key.split('/')[0])}</div>`:'<div class="grow"></div>'}
       ${gFt(d.pub)}</div>`);
   }
   gPrintWin(w, 'ผลการเรียน '+d.key+' ภาค '+d.term, pages, true);
@@ -987,7 +993,7 @@ function printGradeStudents(w, items, groups){
         <tr><td style="background:#F7F7F7">มาตรการที่ได้รับ</td><td>${meas.length?meas.join(' · '):'-'}</td></tr></table>
       <h2>สิ่งที่ต้องดำเนินการ</h2><div style="font-size:13.5px">${todo.length?todo.map((x,i)=>`${i+1}. ${x}`).join('<br>'):'ไม่มีรายการที่ต้องแก้ไข'}</div>
       <div class="dots">ความเห็นครูที่ปรึกษา ..................................................................................................................................................<br>..................................................................................................................................................................................</div>
-      <div class="grow"></div><div class="sgns">${(st.advisors&&st.advisors.length?st.advisors.slice(0,2):['']).map(a=>gSign(a,'ครูที่ปรึกษา')).join('')}${gSign((st.heads||[])[0],'หัวหน้าระดับชั้น '+String(st.cls||'').split('/')[0])}</div>${gFt(t.pub)}</div>`;
+      <div class="grow"></div><div class="sgns">${gAdvHead((st.advisors||[]).slice(0,2), st.heads, String(st.cls||'').split('/')[0])}</div>${gFt(t.pub)}</div>`;
   });
   gPrintWin(w, items.length===1?'ผลการเรียน '+items[0].st.name:'ผลการเรียนรายบุคคล', pages, false);
 }
@@ -1000,7 +1006,7 @@ function printGradeFollow(w, d){
   let idx=0, prev='';
   const rows=list.map(x=>{ const first=x.id!==prev; if(first){ idx++; prev=x.id; } return {x, first, idx}; });
   const n=Math.max(1, Math.ceil(rows.length/per));
-  const signs = d.view==='room' ? (d.advisors||['']).map(a=>gSign(a,'ครูที่ปรึกษา')).join('')+gSign((d.heads||[])[0],'หัวหน้าระดับชั้น '+d.key.split('/')[0])
+  const signs = d.view==='room' ? gAdvHead(d.advisors, d.heads, d.key.split('/')[0])
     : d.view==='grade' ? gSign((d.heads||[])[0],'หัวหน้าระดับชั้น '+d.key)+gSign('','หัวหน้ากลุ่มบริหารงานวิชาการ') : gSign('','หัวหน้ากลุ่มบริหารงานวิชาการ')+gSign('','รองผู้อำนวยการกลุ่มบริหารงานวิชาการ');
   for(let p=0;p<n;p++){
     const part=rows.slice(p*per,(p+1)*per), last=p===n-1;
