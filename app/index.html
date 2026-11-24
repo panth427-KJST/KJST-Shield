@@ -867,7 +867,7 @@ async function pGradeStudent(){
   $('page').innerHTML = gHead(rd)+gTabs({options:base.options})+`<div class="row" style="margin-top:14px">
       <label class="f" style="max-width:200px">ห้องเรียน<select id="gsRoom">${rooms.map(r=>`<option value="${esc(r.v)}" ${r.v===GR.sroom?'selected':''}>${esc(r.v)}</option>`).join('')}</select></label>
       <label class="f" style="flex:2 1 280px">นักเรียน<select id="gsStu">${sts.map(s=>`<option value="${esc(s.id)}" ${s.id===GR.sid?'selected':''}>${s.no<999?s.no+'. ':''}${esc(s.name)}${s.n0+s.nr+s.nms?' ⚠':''}</option>`).join('')}</select></label>
-      <div style="flex:0 0 auto;display:flex;gap:8px"><button type="button" class="btn sm" id="gsPrev" aria-label="คนก่อนหน้า">‹</button><button type="button" class="btn sm" id="gsNext" aria-label="คนถัดไป">›</button></div></div>
+      <div style="flex:0 0 auto;display:flex;gap:8px"><button type="button" class="btn sm" id="gsPrev" aria-label="คนก่อนหน้า">‹</button><button type="button" class="btn sm" id="gsNext" aria-label="คนถัดไป">›</button><button type="button" class="btn sm" data-gprint="roomind">🖨 รายบุคคลทั้งห้อง</button></div></div>
     <div id="gsBody" class="card" style="margin-top:14px"><div class="empty">กำลังโหลด…</div></div>`;
   bindGHead();
   $('gsRoom').onchange=e=>{ GR.sroom=e.target.value; GR.sid=''; pGradeStudent(); };
@@ -914,20 +914,30 @@ function gPrintWin(w, title, pages, landscape){
   w.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(title)}</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
   <style>@page{size:A4 ${landscape?'landscape':'portrait'};margin:0}*{box-sizing:border-box}body{margin:0;background:#eee;font-family:'Sarabun',sans-serif;color:#111}
-  .pg{width:${W};min-height:${H};margin:0 auto 6mm;background:#fff;padding:11mm 13mm 9mm;display:flex;flex-direction:column;font-size:14px;line-height:1.45;page-break-after:always;break-after:page}
+  .pg{width:${W};height:calc(${H} - 0.6mm);overflow:hidden;margin:0 auto 6mm;background:#fff;padding:11mm 13mm 9mm;display:flex;flex-direction:column;font-size:14px;line-height:1.45;page-break-after:always;break-after:page}
+  .pg>.in{flex:0 0 auto;display:flex;flex-direction:column}
   .pg:last-child{page-break-after:auto;break-after:auto}
   .hd{display:flex;align-items:center;gap:12px;border-bottom:2px solid #12245A;padding-bottom:7px}.hd img{height:60px}.hd .t{flex:1}.hd h1{margin:0;font-size:19px;color:#12245A}.hd .r{font-size:12.5px;text-align:right}
   h2{font-size:15px;color:#12245A;margin:10px 0 4px}
   table{width:100%;border-collapse:collapse}th,td{border:1px solid #8A8A8A;padding:3px 5px;vertical-align:top}th{background:#F1F1F1;font-weight:600}
   .c{text-align:center}.bad{color:#B00000;font-weight:700}.gf{color:#B00000;font-weight:700}.sm{font-size:12px}.nw{white-space:nowrap}
   .kp{display:flex;gap:8px;margin:8px 0}.kp>div{flex:1;border:1px solid #8A8A8A;border-radius:6px;padding:4px 10px;font-size:13px}.kp b{display:block;font-size:20px}
-  .grow{flex:1;min-height:8px}.sgns{display:flex;justify-content:space-around;text-align:center;gap:16px;margin-top:14px}.sgns>div{min-width:40%}
+  .grow{flex:1;min-height:8px}.sgns{display:flex;justify-content:space-around;text-align:center;gap:16px;margin-top:14px}.sgns>div{flex:1;min-width:0;max-width:50%}
+  .dots{margin-top:8px;font-size:13.5px;line-height:2.1}
   .ft{margin-top:8px;border-top:1px solid #8A8A8A;padding-top:3px;font-size:11px;color:#444;display:flex;justify-content:space-between;gap:8px}
   .box{border:1px solid #8A8A8A;border-radius:6px;padding:5px 9px;min-height:46px}
   thead{display:table-header-group}tr{page-break-inside:avoid}
   @media print{body{background:#fff}.pg{margin:0;box-shadow:none}.noprint{display:none}}
   .noprint{position:fixed;top:10px;right:10px}.noprint button{font:inherit;padding:8px 18px;border-radius:8px;border:0;background:#12245A;color:#fff;cursor:pointer}</style></head>
-  <body><div class="noprint"><button onclick="print()">🖨 พิมพ์</button></div>${pages.join('')}<script>document.fonts&&document.fonts.ready.then(()=>setTimeout(()=>print(),300))<\/script></body></html>`);
+  <body><div class="noprint"><button onclick="print()">🖨 พิมพ์</button></div>${pages.join('')}<script>
+  /* ย่อเนื้อหาให้พอดี 1 หน้า A4 ถ้าเกิน (ไม่ล้นไปหน้าถัดไป) */
+  function fit(){document.querySelectorAll('.pg').forEach(function(pg){var i=pg.querySelector(':scope>.in');
+    if(!i){i=document.createElement('div');i.className='in';while(pg.firstChild)i.appendChild(pg.firstChild);pg.appendChild(i);}
+    var cs=getComputedStyle(pg),avail=pg.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+    i.style.zoom=1;i.style.minHeight=avail+'px';var h=i.scrollHeight;
+    if(h>avail+1){var z=Math.floor(avail/h*1000)/1000;i.style.zoom=z;i.style.minHeight=(avail/z)+'px';}});}
+  fit();(document.fonts?document.fonts.ready:Promise.resolve()).then(function(){fit();setTimeout(function(){fit();print();},300);});
+  <\/script></body></html>`);
   w.document.close();
 }
 function gHd(title, sub, right){ const logo=new URL('../assets/kjst-logo.png', location.href).href; return `<div class="hd"><img src="${logo}" alt=""><div class="t"><h1>${title}</h1><div>${sub}</div></div><div class="r">${right||''}</div></div>`; }
@@ -937,12 +947,13 @@ const SCHOOL_TH = () => (S.init&&S.init.school)||'โรงเรียนกา
 
 /** รายงานผลการเรียนรายห้อง (A4 แนวนอน · หลายหน้า หัวตารางซ้ำ) */
 function printGradeRoom(w, d){
-  const gs=groupsUsed(d.students, d.groups), per=24, k=d.kpi, pages=[];
+  const gs=groupsUsed(d.students, d.groups), per=23, k=d.kpi, pages=[];
   const adv=(d.advisors||[]), heads=(d.heads||[]);
   const thead = `<thead><tr><th style="width:30px">ที่</th><th>ชื่อ – นามสกุล</th>${gs.map(g=>`<th class="nw">${esc(g)}</th>`).join('')}<th style="width:62px">หน่วยกิต<br>ได้/ลง</th><th style="width:44px">GPA</th><th style="width:48px">อันดับ</th><th style="width:56px">คะแนน<br>พฤติกรรม</th><th style="width:50px">มาเรียน<br>(%)</th></tr></thead>`;
-  const n=Math.max(1, Math.ceil(d.students.length/per));
+  const chunks=[]; for(let i=0, first=true; i<d.students.length || first; first=false){ const c=first?per-4:per; chunks.push(d.students.slice(i,i+c)); i+=c; }
+  const n=chunks.length;
   for(let p=0;p<n;p++){
-    const part=d.students.slice(p*per,(p+1)*per), last=p===n-1;
+    const part=chunks[p], last=p===n-1;
     pages.push(`<div class="pg">${gHd(`รายงานผลการเรียนรายห้อง ภาคเรียนที่ ${esc(d.term)}`, `ชั้น ${esc(d.key)} · ครูที่ปรึกษา ${esc(adv.join(', ')||'-')} · ${esc(SCHOOL_TH())}`, `หน้า ${p+1}/${n}`)}
       ${p===0?`<div class="kp"><div>นักเรียน<b>${k.n} คน</b></div><div>GPA เฉลี่ย<b>${g2(k.avg)}</b><span class="sm">ระดับชั้น ${g2(d.gradeAvg)}</span></div><div>ติด 0/ร/มส<b>${k.bad} คน</b><span class="sm">0 = ${k.n0} · ร = ${k.nr} · มส = ${k.nms}</span></div><div>GPA &lt; 2.00<b>${k.lt2} คน</b></div><div>กิจกรรม มผ<b>${k.actFail} คน</b></div></div>`:'<div style="height:8px"></div>'}
       <table style="font-size:12.5px">${thead}<tbody>${part.map(s=>`<tr><td class="c">${s.no<999?s.no:''}</td><td class="nw">${esc(s.name)}</td>${gs.map(g=>`<td class="c nw">${gcell(s.groups[g])}</td>`).join('')}
@@ -975,8 +986,8 @@ function printGradeStudents(w, items, groups){
         <tr><td style="background:#F7F7F7">การมาเรียน (ปีการศึกษานี้)</td><td>${att}</td></tr>
         <tr><td style="background:#F7F7F7">มาตรการที่ได้รับ</td><td>${meas.length?meas.join(' · '):'-'}</td></tr></table>
       <h2>สิ่งที่ต้องดำเนินการ</h2><div style="font-size:13.5px">${todo.length?todo.map((x,i)=>`${i+1}. ${x}`).join('<br>'):'ไม่มีรายการที่ต้องแก้ไข'}</div>
-      <div class="box" style="margin-top:8px;font-size:13.5px">ความเห็นครูที่ปรึกษา</div>
-      <div class="grow"></div><div class="sgns">${gSign((st.advisors||[])[0],'ครูที่ปรึกษา')}${gSign('','ผู้ปกครอง')}</div>${gFt(t.pub)}</div>`;
+      <div class="dots">ความเห็นครูที่ปรึกษา ..................................................................................................................................................<br>..................................................................................................................................................................................</div>
+      <div class="grow"></div><div class="sgns">${(st.advisors&&st.advisors.length?st.advisors.slice(0,2):['']).map(a=>gSign(a,'ครูที่ปรึกษา')).join('')}${gSign((st.heads||[])[0],'หัวหน้าระดับชั้น '+String(st.cls||'').split('/')[0])}</div>${gFt(t.pub)}</div>`;
   });
   gPrintWin(w, items.length===1?'ผลการเรียน '+items[0].st.name:'ผลการเรียนรายบุคคล', pages, false);
 }
@@ -1025,7 +1036,7 @@ function gPrint(kind){
   if(kind==='room') return printGradeRoom(w, d);
   if(kind==='follow') return printGradeFollow(w, d);
   if(kind==='summary') return printGradeSummary(w, d);
-  if(kind==='roomind') return printGradeStudents(w, d.students.map(s=>gStuItem(Object.assign({}, s, { cls:d.key, advisors:d.advisors }), Object.assign({ term:d.term, pub:d.pub, grade:'', room:'' }, s), null)), d.groups);
+  if(kind==='roomind') return printGradeStudents(w, d.students.map(s=>gStuItem(Object.assign({}, s, { cls:d.key, advisors:d.advisors, heads:d.heads }), Object.assign({ term:d.term, pub:d.pub, grade:'', room:'' }, s), null)), d.groups);
   const r = kind==='self' ? S.myGrades : (kind==='modal' ? S.stuGrades : GR.stu);
   if(!r || !r.terms.length){ if(w) w.close(); return toast('ยังไม่มีผลการเรียน', true); }
   const t = (kind==='stu' && r.terms.find(x=>x.term===GR.term)) || r.terms[0];

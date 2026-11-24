@@ -368,14 +368,14 @@ function gradeStudentStaff_(u, p) {
   if (!s || !inScope_(scope_(u), s.g, s.r)) throw err_('PERM', 'ไม่มีสิทธิ์ดูข้อมูลนักเรียนคนนี้');
   var r = gradeStudent_(id);
   r.student = { id: s.id, name: s.name, g: s.g, r: s.r, no: s.no, score: s.score, cert: s.cert, rate: s.rate, P: s.P, O: s.O, LV: s.LV, L: s.L, A: s.A, days: s.days,
-                mNow: s.mNow, mProb: s.mProb, mContract: s.mContract, advisors: advisorsOf_(s.g, s.r) };
+                mNow: s.mNow, mProb: s.mProb, mContract: s.mContract, advisors: advisorsOf_(s.g, s.r), heads: headsOf_(s.g) };
   return r;
 }
 function gradeStudentSelf_(u) {
   var s = summary_().filter(function (x) { return x.id === u.id; })[0] || { id: u.id, name: u.name };
   var r = gradeStudent_(u.id);
   r.student = { id: s.id, name: s.name, g: s.g, r: s.r, no: s.no, score: s.score, cert: s.cert, rate: s.rate, P: s.P, O: s.O, LV: s.LV, L: s.L, A: s.A, days: s.days,
-                mNow: s.mNow, mProb: s.mProb, mContract: s.mContract, advisors: s.g ? advisorsOf_(s.g, s.r) : [] };
+                mNow: s.mNow, mProb: s.mProb, mContract: s.mContract, advisors: s.g ? advisorsOf_(s.g, s.r) : [], heads: s.g ? headsOf_(s.g) : [] };
   return r;
 }
 
