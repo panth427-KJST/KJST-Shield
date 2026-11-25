@@ -825,7 +825,7 @@ async function pGrades(view, key){
     : d.view==='room' ? `<label class="f" style="max-width:220px">ห้องเรียน<select id="gKey">${d.options.rooms.map(r=>`<option value="${esc(r.v)}" ${r.v===d.key?'selected':''}>${esc(r.v)}${r.own?' (ห้องของฉัน)':''}</option>`).join('')}</select></label>` : '';
   const prints = d.view==='room'
     ? `<button type="button" class="btn sm" data-gprint="room">🖨 รายงานรายห้อง</button><button type="button" class="btn sm" data-gprint="roomind">🖨 รายบุคคลทั้งห้อง</button><button type="button" class="btn sm" data-gprint="follow">🖨 รายชื่อ 0/ร/มส</button>`
-    : `<button type="button" class="btn sm" data-gprint="summary">🖨 สรุปผลการเรียน</button><button type="button" class="btn sm" data-gprint="follow">🖨 รายชื่อ 0/ร/มส</button>`;
+    : (d.view==='grade'?`<button type="button" class="btn sm" data-gprint="roomsall">🖨 รายงานรายห้องทั้งชั้น</button>`:'')+`<button type="button" class="btn sm" data-gprint="summary">🖨 สรุปผลการเรียน</button><button type="button" class="btn sm" data-gprint="follow">🖨 รายชื่อ 0/ร/มส</button>`;
   $('page').innerHTML = gHead(d)+gTabs(d)+`<div class="row" style="margin-top:14px;align-items:flex-end">${sel}<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;flex:1 1 300px">${prints}</div></div>`+body;
   bindGHead();
   if($('gKey')) $('gKey').onchange=e=>pGrades(d.view, e.target.value);
@@ -915,7 +915,7 @@ function gPrintWin(w, title, pages, landscape){
   w.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(title)}</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
   <style>@page{size:A4 ${landscape?'landscape':'portrait'};margin:0}*{box-sizing:border-box}body{margin:0;background:#eee;font-family:'Sarabun',sans-serif;color:#111}
-  .pg{width:${W};height:calc(${H} - 0.6mm);overflow:hidden;margin:0 auto 6mm;background:#fff;padding:11mm 13mm 9mm;display:flex;flex-direction:column;font-size:14px;line-height:1.45;page-break-after:always;break-after:page}
+  .pg{width:${W};height:calc(${H} - 6mm);overflow:hidden;margin:0 auto 6mm;background:#fff;padding:11mm 13mm 9mm;display:flex;flex-direction:column;font-size:14px;line-height:1.45;page-break-after:always;break-after:page}
   .pg>.in{flex:0 0 auto;display:flex;flex-direction:column}
   .pg:last-child{page-break-after:auto;break-after:auto}
   .hd{display:flex;align-items:center;gap:12px;border-bottom:2px solid #12245A;padding-bottom:7px}.hd img{height:60px}.hd .t{flex:1}.hd h1{margin:0;font-size:19px;color:#12245A}.hd .r{font-size:12.5px;text-align:right}
@@ -928,7 +928,7 @@ function gPrintWin(w, title, pages, landscape){
   .ft{margin-top:8px;border-top:1px solid #8A8A8A;padding-top:3px;font-size:11px;color:#444;display:flex;justify-content:space-between;gap:8px}
   .box{border:1px solid #8A8A8A;border-radius:6px;padding:5px 9px;min-height:46px}
   thead{display:table-header-group}tr{page-break-inside:avoid}
-  @media print{body{background:#fff}.pg{margin:0;box-shadow:none}.noprint{display:none}}
+  @media print{html,body{background:#fff;margin:0;padding:0}.pg{margin:0;box-shadow:none}.noprint{display:none}}
   .noprint{position:fixed;top:10px;right:10px}.noprint button{font:inherit;padding:8px 18px;border-radius:8px;border:0;background:#12245A;color:#fff;cursor:pointer}</style></head>
   <body><div class="noprint"><button onclick="print()">🖨 พิมพ์</button></div>${pages.join('')}<script>
   /* ย่อเนื้อหาให้พอดี 1 หน้า A4 ถ้าเกิน (ไม่ล้นไปหน้าถัดไป) */
@@ -953,8 +953,9 @@ const gFt = (pub) => `<div class="ft"><span>พิมพ์จากระบบ
 const SCHOOL_TH = () => (S.init&&S.init.school)||'โรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี';
 
 /** รายงานผลการเรียนรายห้อง (A4 แนวนอน · หลายหน้า หัวตารางซ้ำ) */
-function printGradeRoom(w, d){
-  const gs=groupsUsed(d.students, d.groups), per=23, k=d.kpi, pages=[];
+function printGradeRoom(w, d){ gPrintWin(w, 'ผลการเรียน '+d.key+' ภาค '+d.term, gRoomPages(d), true); }
+function gRoomPages(d){
+  const gs=groupsUsed(d.students, d.groups), per=22, k=d.kpi, pages=[];
   const adv=(d.advisors||[]), heads=(d.heads||[]);
   const thead = `<thead><tr><th style="width:30px">ที่</th><th>ชื่อ – นามสกุล</th>${gs.map(g=>`<th class="nw">${esc(g)}</th>`).join('')}<th style="width:62px">หน่วยกิต<br>ได้/ลง</th><th style="width:44px">GPA</th><th style="width:48px">อันดับ</th><th style="width:56px">คะแนน<br>พฤติกรรม</th><th style="width:50px">มาเรียน<br>(%)</th></tr></thead>`;
   const chunks=[]; for(let i=0, first=true; i<d.students.length || first; first=false){ const c=first?per-4:per; chunks.push(d.students.slice(i,i+c)); i+=c; }
@@ -969,7 +970,16 @@ function printGradeRoom(w, d){
         <div class="grow"></div><div class="sgns">${gAdvHead(adv, heads, d.key.split('/')[0])}</div>`:'<div class="grow"></div>'}
       ${gFt(d.pub)}</div>`);
   }
-  gPrintWin(w, 'ผลการเรียน '+d.key+' ภาค '+d.term, pages, true);
+  return pages;
+}
+/** รายงานรายห้องทุกห้องในระดับชั้น (เฉพาะห้องในขอบเขต) */
+async function printGradeRoomsAll(w, d){
+  const rooms=d.options.rooms.filter(r=>r.v.indexOf(d.key+'/')===0).map(r=>r.v);
+  if(!rooms.length){ if(w) w.close(); return toast('ไม่มีห้องเรียนในขอบเขต', true); }
+  if(w) w.document.write('<p style="font-family:sans-serif;padding:20px">กำลังเตรียมรายงาน '+rooms.length+' ห้อง…</p>');
+  const all=await run(Promise.all(rooms.map(k=>api('grades',{ term:d.term, view:'room', key:k }))));
+  if(!all){ if(w) w.close(); return; }
+  gPrintWin(w, 'ผลการเรียนรายห้อง '+d.key+' ภาค '+d.term, [].concat(...all.filter(x=>x.students&&x.students.length).map(gRoomPages)), true);
 }
 
 /** รายงานรายบุคคล (A4 แนวตั้ง 1 คน/หน้า) — items: [{st:{...ข้อมูลนักเรียน+Shield}, t:{...ผลภาคเรียน}}] */
@@ -1041,6 +1051,7 @@ function gStuItem(st, t, gpax){ return { st:Object.assign({}, st, { cls:st.cls||
 function gPrint(kind){
   const w=window.open('','_blank'), d=GR.d;
   if(kind==='room') return printGradeRoom(w, d);
+  if(kind==='roomsall') return printGradeRoomsAll(w, d);
   if(kind==='follow') return printGradeFollow(w, d);
   if(kind==='summary') return printGradeSummary(w, d);
   if(kind==='roomind') return printGradeStudents(w, d.students.map(s=>gStuItem(Object.assign({}, s, { cls:d.key, advisors:d.advisors, heads:d.heads }), Object.assign({ term:d.term, pub:d.pub, grade:'', room:'' }, s), null)), d.groups);
