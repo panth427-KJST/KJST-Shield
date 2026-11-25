@@ -953,6 +953,13 @@ const gFt = (pub) => `<div class="ft"><span>พิมพ์จากระบบ
 const SCHOOL_TH = () => (S.init&&S.init.school)||'โรงเรียนกาญจนาภิเษกวิทยาลัย สุราษฎร์ธานี';
 
 /** รายงานผลการเรียนรายห้อง (A4 แนวนอน · หลายหน้า หัวตารางซ้ำ) */
+/** มาตรการเพิ่มเติมของนักเรียนในห้อง (จาก KJST Shield) — แสดงเฉพาะเมื่อมี */
+function gMeasureBlock(list){
+  const rows=list.map(s=>({ s, m:[].concat((s.mNow||[]).map(m=>esc(m.name)+' ('+thDate(m.start)+' – '+thDate(m.end)+')'), s.mContract?['ทำบันทึกสัญญาพฤติกรรม '+s.mContract+' ครั้ง']:[], s.mProb?['ทำทัณฑ์บน '+s.mProb+' ครั้ง']:[]) })).filter(x=>x.m.length);
+  if(!rows.length) return '';
+  return `<h2 style="margin-top:8px">มาตรการเพิ่มเติม</h2><table style="font-size:12.5px"><thead><tr><th style="width:30px">ที่</th><th style="width:26%">ชื่อ – นามสกุล</th><th>มาตรการที่ได้รับ (ปีการศึกษานี้)</th></tr></thead>
+    <tbody>${rows.map(x=>`<tr><td class="c">${x.s.no<999?x.s.no:''}</td><td class="nw">${esc(x.s.name)}</td><td>${x.m.join(' · ')}</td></tr>`).join('')}</tbody></table>`;
+}
 function printGradeRoom(w, d){ gPrintWin(w, 'ผลการเรียน '+d.key+' ภาค '+d.term, gRoomPages(d), true); }
 function gRoomPages(d){
   const gs=groupsUsed(d.students, d.groups), per=22, k=d.kpi, pages=[];
@@ -967,7 +974,7 @@ function gRoomPages(d){
       <table style="font-size:12.5px">${thead}<tbody>${part.map(s=>`<tr><td class="c">${s.no<999?s.no:''}</td><td class="nw">${esc(s.name)}</td>${gs.map(g=>`<td class="c nw">${gcell(s.groups[g])}</td>`).join('')}
         <td class="c">${s.crGet}/${s.crReg}</td><td class="c" style="font-weight:700${s.gpa!=null&&s.gpa<2?';color:#B00000':''}">${g2(s.gpa)}</td><td class="c">${s.rk==null?'–':s.rk}</td><td class="c">${s.score}</td><td class="c">${s.rate==null?'–':s.rate}</td></tr>`).join('')}</tbody></table>
       ${last?`<div class="sm" style="margin-top:5px">ค่าในแต่ละกลุ่มสาระ = ค่าเฉลี่ยถ่วงน้ำหนักหน่วยกิตของทุกรายวิชาในกลุ่ม (พื้นฐานและเพิ่มเติม) ที่ตัดสินผลแล้ว จัดกลุ่มตามรหัสวิชา · <span class="gf">(0)</span> มีวิชาได้ 0 (นำมาคิด) · <span class="gf">(ร)/(มส)</span> มีวิชายังไม่ตัดสินผล (ไม่นำมาคิด) · GPA และอันดับจาก KJST e-Score</div>
-        <div class="grow"></div><div class="sgns">${gAdvHead(adv, heads, d.key.split('/')[0])}</div>`:'<div class="grow"></div>'}
+        ${gMeasureBlock(d.students)}<div class="grow"></div>`:'<div class="grow"></div>'}
       ${gFt(d.pub)}</div>`);
   }
   return pages;
